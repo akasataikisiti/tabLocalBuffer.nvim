@@ -2,6 +2,7 @@ local config = require("tablocal_buffer.config")
 local model = require("tablocal_buffer.model")
 local navigation = require("tablocal_buffer.navigation")
 local bufferline = require("tablocal_buffer.bufferline")
+local editor = require("tablocal_buffer.ui.editor")
 
 local M = {}
 
@@ -149,11 +150,61 @@ function M.is_cycle_candidate(bufnr)
 end
 
 function M.move_current_window_to_new_tab()
-  error("move_current_window_to_new_tab() is not implemented yet")
+  local source_tab = vim.api.nvim_get_current_tabpage()
+  local bufnr = vim.api.nvim_get_current_buf()
+
+  vim.cmd.tabnew()
+  local new_tab = vim.api.nvim_get_current_tabpage()
+  local scratch = vim.api.nvim_get_current_buf()
+  vim.api.nvim_set_current_buf(bufnr)
+  model.set_tab_buffers(new_tab, { bufnr })
+
+  if not vim.api.nvim_tabpage_is_valid(source_tab) then
+    return
+  end
+
+  vim.api.nvim_set_current_tabpage(source_tab)
+  local source_windows = vim.api.nvim_tabpage_list_wins(source_tab)
+  local close_wins = {}
+  for _, winid in ipairs(source_windows) do
+    if vim.api.nvim_win_get_buf(winid) == bufnr then
+      table.insert(close_wins, winid)
+    end
+  end
+
+  model.remove_buffer_from_tab(source_tab, bufnr)
+  local fallback = model.find_first_valid_buffer(source_tab)
+  if fallback then
+    for _, winid in ipairs(close_wins) do
+      if vim.api.nvim_win_is_valid(winid) then
+        vim.api.nvim_win_set_buf(winid, fallback)
+      end
+    end
+  elseif #close_wins < #source_windows then
+    for _, winid in ipairs(close_wins) do
+      if vim.api.nvim_win_is_valid(winid) then
+        pcall(vim.api.nvim_win_close, winid, false)
+      end
+    end
+  end
+
+  if vim.api.nvim_tabpage_is_valid(source_tab) then
+    model.sync_tab_windows(source_tab)
+  end
+
+  vim.api.nvim_set_current_tabpage(new_tab)
+  model.sync_tab_windows(new_tab)
+
+  if vim.api.nvim_buf_is_valid(scratch) and scratch ~= bufnr then
+    local scratch_name = vim.api.nvim_buf_get_name(scratch)
+    if scratch_name == "" and not vim.bo[scratch].modified then
+      pcall(vim.api.nvim_buf_delete, scratch, { force = false })
+    end
+  end
 end
 
 function M.open_editor()
-  error("open_editor() is not implemented yet")
+  return editor.open_editor()
 end
 
 return M

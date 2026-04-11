@@ -5,6 +5,9 @@ local M = {}
 M.tabvar_key = "tablocal_buffers"
 
 local function safe_tab_var(tabpage)
+  if not vim.api.nvim_tabpage_is_valid(tabpage) then
+    return {}
+  end
   local ok, value = pcall(vim.api.nvim_tabpage_get_var, tabpage, M.tabvar_key)
   if not ok or type(value) ~= "table" then
     return {}
@@ -13,6 +16,9 @@ local function safe_tab_var(tabpage)
 end
 
 local function set_tab_buffers(tabpage, bufnrs)
+  if not vim.api.nvim_tabpage_is_valid(tabpage) then
+    return
+  end
   vim.api.nvim_tabpage_set_var(tabpage, M.tabvar_key, bufnrs)
 end
 
@@ -154,6 +160,9 @@ function M.get_buf_tabnr(bufnr)
 end
 
 function M.sync_tab_windows(tabpage)
+  if not vim.api.nvim_tabpage_is_valid(tabpage) then
+    return
+  end
   local buffers = M.get_tab_buffers(tabpage)
   if #buffers == 0 then
     return
