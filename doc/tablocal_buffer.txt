@@ -1,0 +1,131 @@
+*tablocal_buffer.txt*  tablocal_buffer.nvim
+
+==============================================================================
+INTRODUCTION                                      *tablocal_buffer-introduction*
+
+tablocal_buffer.nvim は、タブごとに巡回対象バッファを管理し、`:bnext`
+と `:bprevious` 相当の移動をタブローカル化するプラグインです。
+
+==============================================================================
+SETUP                                                    *tablocal_buffer-setup*
+
+正式な設定入口は >
+
+  lua require("tablocal_buffer").setting({
+    keymaps = {
+      bnext = "<S-l>",
+      bprevious = "<S-h>",
+      move_to_new_tab = "st",
+      open_editor = "<M-a>",
+    },
+  })
+<
+
+です。`setup()` は `setting()` の alias として利用できます。
+
+既定キーマップは登録しません。`keymaps` に指定した項目だけが登録されます。
+
+==============================================================================
+OPTIONS                                              *tablocal_buffer-options*
+
+主な設定項目: >
+
+  lua require("tablocal_buffer").setting({
+    keymaps = {},
+    commands = { enabled = true },
+    replace_builtin_bnext = false,
+    bufferline = {
+      enabled = true,
+      auto_sort_on_apply = true,
+    },
+    editor = {
+      width_ratio = 0.6,
+      height_ratio = 0.6,
+      border = "rounded",
+    },
+    cycle = {
+      include_terminal = true,
+      require_buflisted = true,
+      exclude = {
+        filetypes = { "fugitive" },
+        buftypes = {},
+        name_patterns = { "^fugitive://" },
+        predicates = {},
+      },
+    },
+  })
+<
+
+`cycle.exclude.predicates` には `ctx` を受け取る関数を指定できます。`ctx`
+は `bufnr`, `buflisted`, `buftype`, `filetype`, `bufname`, `modified`
+を持ちます。
+
+==============================================================================
+COMMANDS                                            *tablocal_buffer-commands*
+
+`:TabLocalBnext`
+  現在タブの巡回対象バッファ内で次へ移動します。
+
+`:TabLocalBprevious`
+  現在タブの巡回対象バッファ内で前へ移動します。
+
+`:TabLocalEditTabBuffers`
+  フローティング編集 UI を開きます。
+
+`:TabLocalBufferlineSort`
+  `bufferline.nvim` がある場合にタブローカル順でソートします。
+
+`:TabLocalMoveToNewTab`
+  現在バッファを新規タブへ移動します。
+
+`:TabLocalDebugState`
+  タブごとの内部状態を表示します。
+
+==============================================================================
+API                                                      *tablocal_buffer-api*
+
+`require("tablocal_buffer").setting(opts)`
+  設定を適用し、autocmd・command・keymap を初期化します。
+
+`require("tablocal_buffer").setup(opts)`
+  `setting(opts)` の alias です。
+
+`require("tablocal_buffer").bnext_tablocal()`
+  現在タブ内の次バッファへ移動します。
+
+`require("tablocal_buffer").bprevious_tablocal()`
+  現在タブ内の前バッファへ移動します。
+
+`require("tablocal_buffer").move_current_window_to_new_tab()`
+  現在バッファを新しいタブへ移します。
+
+`require("tablocal_buffer").open_editor()`
+  編集 UI を開きます。
+
+`require("tablocal_buffer").get_buf_tabnr(bufnr)`
+  所属タブ番号を返します。見つからなければ `nil` です。
+
+`require("tablocal_buffer").get_global_buffer_order()`
+  `bufnr => order` の map を返します。
+
+==============================================================================
+EDITOR                                                *tablocal_buffer-editor*
+
+編集 UI は Lua テーブルを返す形式です。 >
+
+  return {
+    groups = {
+      { "init.lua", "README.md" },
+      { "main.ts", "test.ts" },
+    },
+    unassigned = {
+      "scratch.txt:18",
+    },
+  }
+<
+
+`q` で閉じた場合は適用されません。通常に閉じた場合は内容を評価し、
+妥当なら各タブへ反映します。
+
+==============================================================================
+ vim:tw=78:ts=8:noet:ft=help:norl:
