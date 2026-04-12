@@ -3,6 +3,32 @@ local model = require("tablocal_buffer.model")
 
 local M = {}
 
+local function sanitize_bufferline_state()
+  local ok_state, state = pcall(require, "bufferline.state")
+  if not ok_state or type(state) ~= "table" or type(state.set) ~= "function" then
+    return
+  end
+
+  local function keep_valid(components)
+    if type(components) ~= "table" then
+      return {}
+    end
+
+    local filtered = {}
+    for _, item in ipairs(components) do
+      if type(item) == "table" and item.id and vim.api.nvim_buf_is_valid(item.id) then
+        table.insert(filtered, item)
+      end
+    end
+    return filtered
+  end
+
+  state.set({
+    components = keep_valid(state.components),
+    visible_components = keep_valid(state.visible_components),
+  })
+end
+
 function M.get_global_buffer_order()
   local order = {}
   local index = 1
@@ -27,7 +53,9 @@ function M.sort_bufferline()
     return false
   end
 
-  bufferline.sort_by(function(buffer_a, buffer_b)
+  sanitize_bufferline_state()
+
+  local sorted_ok = pcall(bufferline.sort_by, function(buffer_a, buffer_b)
     local order = M.get_global_buffer_order()
     local a = order[buffer_a.id] or math.huge
     local b = order[buffer_b.id] or math.huge
@@ -36,7 +64,7 @@ function M.sort_bufferline()
     end
     return a < b
   end)
-  return true
+  return sorted_ok
 end
 
 return M

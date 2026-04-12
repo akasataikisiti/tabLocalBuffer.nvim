@@ -5,6 +5,10 @@ local model = require("tablocal_buffer.model")
 
 local M = {}
 
+local function quoted(label)
+  return ("%q"):format(label)
+end
+
 local function all_known_buffers()
   local seen = {}
   local bufnrs = {}
@@ -139,6 +143,39 @@ function M.parse_editor_text(lines, reverse)
   }
 end
 
+function M.render_editor_text(payload)
+  local lines = {
+    "-- Edit tab-local buffers and write/quit to apply. Press q to close without saving. Duplicate basenames keep the shown :<bufnr> suffix.",
+    "return {",
+    "  groups = {",
+  }
+
+  for _, group in ipairs(payload.groups or {}) do
+    table.insert(lines, "    {")
+    for _, label in ipairs(group) do
+      table.insert(lines, ("      %s,"):format(quoted(label)))
+    end
+    table.insert(lines, "    },")
+  end
+
+  table.insert(lines, "  },")
+  table.insert(lines, "")
+  table.insert(lines, "  -- Unassigned buffers (not in any tab). Move labels above or leave here to keep unassigned.")
+  table.insert(lines, "  unassigned = {")
+
+  if payload.unassigned and #payload.unassigned > 0 then
+    for _, label in ipairs(payload.unassigned) do
+      table.insert(lines, ("    %s,"):format(quoted(label)))
+    end
+  else
+    table.insert(lines, "    -- (none)")
+  end
+
+  table.insert(lines, "  },")
+  table.insert(lines, "}")
+  return lines
+end
+
 local function overlap_size(group, buffers)
   local set = {}
   for _, bufnr in ipairs(buffers) do
@@ -243,12 +280,12 @@ function M.apply_layout(layout)
     removed[bufnr] = nil
   end
 
-  for bufnr in pairs(removed) do
-    maybe_delete_buffer(bufnr)
-  end
-
   if config.get().bufferline.auto_sort_on_apply then
     bufferline.sort_bufferline()
+  end
+
+  for bufnr in pairs(removed) do
+    maybe_delete_buffer(bufnr)
   end
 end
 
@@ -283,8 +320,7 @@ function M.open_editor()
     style = "minimal",
   })
 
-  local lines = vim.split(vim.inspect(encoded.payload), "\n", { plain = true })
-  table.insert(lines, 1, "return ")
+  local lines = M.render_editor_text(encoded.payload)
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
 
   vim.b[bufnr].tablocal_label_map = encoded.reverse
@@ -302,14 +338,16 @@ function M.open_editor()
       if vim.b[bufnr].tablocal_editor_cancelled then
         return
       end
-      local parsed, err = M.parse_editor_text(vim.api.nvim_buf_get_lines(bufnr, 0, -1, false), vim.b[bufnr].tablocal_label_map)
-      if not parsed then
-        vim.schedule(function()
+      local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+      local reverse = vim.deepcopy(vim.b[bufnr].tablocal_label_map or {})
+      vim.schedule(function()
+        local parsed, err = M.parse_editor_text(lines, reverse)
+        if not parsed then
           vim.notify(("tablocal_buffer: invalid editor content: %s"):format(err), vim.log.levels.ERROR)
-        end)
-        return
-      end
-      M.apply_layout(parsed)
+          return
+        end
+        M.apply_layout(parsed)
+      end)
     end,
   })
 

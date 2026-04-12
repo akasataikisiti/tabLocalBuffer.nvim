@@ -118,6 +118,39 @@ local function test_editor_parser()
   ok(invalid == nil, "duplicate labels should fail validation")
 end
 
+local function test_editor_render_text()
+  reset()
+  local editor = require("tablocal_buffer.ui.editor")
+
+  local rendered = editor.render_editor_text({
+    groups = {
+      { "a.txt", "b.txt" },
+      { "c.txt:12" },
+    },
+    unassigned = {},
+  })
+
+  eq(rendered, {
+    "-- Edit tab-local buffers and write/quit to apply. Press q to close without saving. Duplicate basenames keep the shown :<bufnr> suffix.",
+    "return {",
+    "  groups = {",
+    "    {",
+    '      "a.txt",',
+    '      "b.txt",',
+    "    },",
+    "    {",
+    '      "c.txt:12",',
+    "    },",
+    "  },",
+    "",
+    "  -- Unassigned buffers (not in any tab). Move labels above or leave here to keep unassigned.",
+    "  unassigned = {",
+    "    -- (none)",
+    "  },",
+    "}",
+  }, "editor renderer should produce multiline editable layout")
+end
+
 local function test_move_to_new_tab()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -151,13 +184,132 @@ local function test_move_to_new_tab_replaces_last_source_window()
   ok(not plugin.is_cycle_candidate(vim.api.nvim_get_current_buf()), "source tab fallback should be unmanaged")
 end
 
+local function test_editor_apply_layout_after_close()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  new_named_buffer("a.txt")
+  new_named_buffer("b.txt")
+
+  local editor = require("tablocal_buffer.ui.editor")
+  local bufnr, winid = editor.open_editor()
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+    "-- Edit tab-local buffers and write/quit to apply. Press q to close without saving. Duplicate basenames keep the shown :<bufnr> suffix.",
+    "return {",
+    "  groups = {",
+    "    {",
+    '      "a.txt",',
+    "    },",
+    "    {",
+    '      "b.txt",',
+    "    },",
+    "  },",
+    "",
+    "  -- Unassigned buffers (not in any tab). Move labels above or leave here to keep unassigned.",
+    "  unassigned = {",
+    "    -- (none)",
+    "  },",
+    "}",
+  })
+
+  vim.api.nvim_win_close(winid, true)
+  vim.wait(1000, function()
+    return #vim.api.nvim_list_tabpages() == 2
+  end)
+
+  eq(#vim.api.nvim_list_tabpages(), 2, "closing editor with valid changes should apply layout after autocmd returns")
+end
+
+local function test_apply_layout_sorts_before_deleting_removed_buffers()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  package.loaded["tablocal_buffer.ui.editor"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({
+    bufferline = {
+      enabled = true,
+      auto_sort_on_apply = true,
+    },
+  })
+
+  local kept = new_named_buffer("kept.txt")
+  local removed = new_named_buffer("removed.txt")
+
+  local sort_buf_validity = nil
+  package.loaded["bufferline"] = {
+    sort_by = function(comparator)
+      sort_buf_validity = vim.api.nvim_buf_is_valid(removed)
+      comparator({ id = kept }, { id = removed })
+    end,
+  }
+
+  local editor = require("tablocal_buffer.ui.editor")
+  editor.apply_layout({
+    groups = {
+      { kept },
+    },
+    unassigned = {},
+  })
+
+  ok(sort_buf_validity == true, "bufferline sort should run before removed buffers are deleted")
+  ok(not vim.api.nvim_buf_is_valid(removed), "removed buffer should be deleted after sorting")
+  package.loaded["bufferline"] = nil
+end
+
+local function test_bufferline_sort_sanitizes_invalid_state()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  package.loaded["tablocal_buffer.bufferline"] = nil
+
+  local kept = new_named_buffer("kept.txt")
+  local invalid = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_delete(invalid, { force = true })
+
+  local captured_ids = nil
+  package.loaded["bufferline.state"] = {
+    components = {
+      { id = kept },
+      { id = invalid },
+    },
+    visible_components = {
+      { id = kept },
+      { id = invalid },
+    },
+    set = function(next_state)
+      package.loaded["bufferline.state"].components = next_state.components
+      package.loaded["bufferline.state"].visible_components = next_state.visible_components
+    end,
+  }
+  package.loaded["bufferline"] = {
+    sort_by = function(_)
+      captured_ids = {}
+      for _, item in ipairs(package.loaded["bufferline.state"].components) do
+        table.insert(captured_ids, item.id)
+      end
+    end,
+  }
+
+  local tlb_bufferline = require("tablocal_buffer.bufferline")
+  ok(tlb_bufferline.sort_bufferline(), "bufferline sort should succeed with sanitized state")
+  eq(captured_ids, { kept }, "invalid buffer ids should be removed before sorting")
+
+  package.loaded["bufferline"] = nil
+  package.loaded["bufferline.state"] = nil
+end
+
 local tests = {
   test_cycle_candidate,
   test_navigation_and_registration,
   test_labels,
   test_editor_parser,
+  test_editor_render_text,
   test_move_to_new_tab,
   test_move_to_new_tab_replaces_last_source_window,
+  test_editor_apply_layout_after_close,
+  test_apply_layout_sorts_before_deleting_removed_buffers,
+  test_bufferline_sort_sanitizes_invalid_state,
 }
 
 for _, test in ipairs(tests) do
