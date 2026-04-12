@@ -233,6 +233,32 @@ local function tabs_by_best_overlap(groups)
   return ordered_tabs
 end
 
+local function reorder_tabs(tabpages)
+  local original_tab = vim.api.nvim_get_current_tabpage()
+
+  for target_index, tabpage in ipairs(tabpages) do
+    if vim.api.nvim_tabpage_is_valid(tabpage) then
+      local current_tabs = vim.api.nvim_list_tabpages()
+      local current_index = nil
+      for index, existing in ipairs(current_tabs) do
+        if existing == tabpage then
+          current_index = index
+          break
+        end
+      end
+
+      if current_index and current_index ~= target_index then
+        vim.api.nvim_set_current_tabpage(tabpage)
+        vim.cmd(("tabmove %d"):format(target_index - 1))
+      end
+    end
+  end
+
+  if vim.api.nvim_tabpage_is_valid(original_tab) then
+    vim.api.nvim_set_current_tabpage(original_tab)
+  end
+end
+
 local function is_buffer_visible(bufnr)
   for _, winid in ipairs(vim.api.nvim_list_wins()) do
     if vim.api.nvim_win_get_buf(winid) == bufnr then
@@ -279,6 +305,8 @@ function M.apply_layout(layout)
   for _, bufnr in ipairs(layout.unassigned) do
     removed[bufnr] = nil
   end
+
+  reorder_tabs(tabs)
 
   if config.get().bufferline.auto_sort_on_apply then
     bufferline.sort_bufferline()

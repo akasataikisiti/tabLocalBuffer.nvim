@@ -258,10 +258,51 @@ local function test_apply_layout_sorts_before_deleting_removed_buffers()
   package.loaded["bufferline"] = nil
 end
 
+local function test_apply_layout_reorders_tabs_to_match_group_order()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  local model = require("tablocal_buffer.model")
+  plugin.setting({
+    bufferline = {
+      enabled = false,
+      auto_sort_on_apply = false,
+    },
+  })
+
+  local a = new_named_buffer("a.txt")
+  local b = new_named_buffer("b.txt")
+  vim.cmd.tabnew()
+  local c = new_named_buffer("c.txt")
+
+  local editor = require("tablocal_buffer.ui.editor")
+  editor.apply_layout({
+    groups = {
+      { a },
+      { c },
+      { b },
+    },
+    unassigned = {},
+  })
+
+  local tabpages = vim.api.nvim_list_tabpages()
+  eq(model.get_tab_buffers(tabpages[1]), { a }, "first tab should match first editor group")
+  eq(model.get_tab_buffers(tabpages[2]), { c }, "second tab should match second editor group")
+  eq(model.get_tab_buffers(tabpages[3]), { b }, "third tab should match third editor group")
+end
+
 local function test_bufferline_sort_sanitizes_invalid_state()
   reset()
   package.loaded["tablocal_buffer"] = nil
   package.loaded["tablocal_buffer.bufferline"] = nil
+  package.loaded["bufferline.state"] = nil
+  package.loaded["bufferline"] = nil
+  require("tablocal_buffer").setting({
+    bufferline = {
+      enabled = true,
+      auto_sort_on_apply = true,
+    },
+  })
 
   local kept = new_named_buffer("kept.txt")
   local invalid = vim.api.nvim_create_buf(false, true)
@@ -309,6 +350,7 @@ local tests = {
   test_move_to_new_tab_replaces_last_source_window,
   test_editor_apply_layout_after_close,
   test_apply_layout_sorts_before_deleting_removed_buffers,
+  test_apply_layout_reorders_tabs_to_match_group_order,
   test_bufferline_sort_sanitizes_invalid_state,
 }
 
