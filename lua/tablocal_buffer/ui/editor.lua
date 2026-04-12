@@ -14,7 +14,7 @@ local function all_known_buffers()
   local bufnrs = {}
 
   for _, tabpage in ipairs(vim.api.nvim_list_tabpages()) do
-    for _, bufnr in ipairs(model.get_tab_buffers(tabpage)) do
+    for _, bufnr in ipairs(model.get_tab_buffers_raw(tabpage)) do
       if not seen[bufnr] then
         seen[bufnr] = true
         table.insert(bufnrs, bufnr)
@@ -23,7 +23,7 @@ local function all_known_buffers()
   end
 
   for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
-    if model.is_cycle_candidate(bufnr) and not seen[bufnr] then
+    if model.is_editor_candidate(bufnr) and not seen[bufnr] then
       seen[bufnr] = true
       table.insert(bufnrs, bufnr)
     end
@@ -41,7 +41,7 @@ local function encode_state()
 
   for _, tabpage in ipairs(vim.api.nvim_list_tabpages()) do
     local group = {}
-    for _, bufnr in ipairs(model.get_tab_buffers(tabpage)) do
+    for _, bufnr in ipairs(model.get_tab_buffers_raw(tabpage)) do
       assigned[bufnr] = true
       table.insert(group, label_map[bufnr])
     end
@@ -201,7 +201,7 @@ local function tabs_by_best_overlap(groups)
   local tabs = vim.api.nvim_list_tabpages()
   local current_state = {}
   for _, tabpage in ipairs(tabs) do
-    current_state[tabpage] = model.get_tab_buffers(tabpage)
+    current_state[tabpage] = model.get_tab_buffers_raw(tabpage)
   end
 
   local assigned_tabs = {}
@@ -270,6 +270,9 @@ end
 
 local function maybe_delete_buffer(bufnr)
   if not vim.api.nvim_buf_is_valid(bufnr) then
+    return
+  end
+  if vim.api.nvim_buf_get_name(bufnr) == "" then
     return
   end
   if vim.bo[bufnr].modified or is_buffer_visible(bufnr) then

@@ -84,11 +84,32 @@ function M.is_cycle_candidate(bufnr)
   return true
 end
 
+function M.is_editor_candidate(bufnr)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return false
+  end
+
+  local opts = config.get().cycle
+  local ctx = M.get_cycle_context(bufnr)
+
+  if opts.require_buflisted and not ctx.buflisted then
+    return false
+  end
+
+  if ctx.buftype ~= "" then
+    if not (opts.include_terminal and ctx.buftype == "terminal") then
+      return false
+    end
+  end
+
+  return true
+end
+
 function M.normalize_tab_buffers(tabpage)
   local seen = {}
   local normalized = {}
   for _, bufnr in ipairs(safe_tab_var(tabpage)) do
-    if not seen[bufnr] and M.is_cycle_candidate(bufnr) then
+    if not seen[bufnr] and M.is_editor_candidate(bufnr) then
       seen[bufnr] = true
       table.insert(normalized, bufnr)
     end
@@ -97,21 +118,31 @@ function M.normalize_tab_buffers(tabpage)
   return normalized
 end
 
-function M.get_tab_buffers(tabpage)
+function M.get_tab_buffers_raw(tabpage)
   return M.normalize_tab_buffers(tabpage or vim.api.nvim_get_current_tabpage())
+end
+
+function M.get_tab_buffers(tabpage)
+  local cycle_buffers = {}
+  for _, bufnr in ipairs(M.get_tab_buffers_raw(tabpage)) do
+    if M.is_cycle_candidate(bufnr) then
+      table.insert(cycle_buffers, bufnr)
+    end
+  end
+  return cycle_buffers
 end
 
 function M.set_tab_buffers(tabpage, bufnrs)
   set_tab_buffers(tabpage, bufnrs or {})
-  return M.normalize_tab_buffers(tabpage)
+  return M.get_tab_buffers_raw(tabpage)
 end
 
 function M.add_buffer_to_tab(tabpage, bufnr)
-  if not M.is_cycle_candidate(bufnr) then
+  if not M.is_editor_candidate(bufnr) then
     M.remove_buffer_from_tab(tabpage, bufnr)
     return false
   end
-  local buffers = M.get_tab_buffers(tabpage)
+  local buffers = M.get_tab_buffers_raw(tabpage)
   if list_contains(buffers, bufnr) then
     return false
   end
@@ -121,7 +152,7 @@ function M.add_buffer_to_tab(tabpage, bufnr)
 end
 
 function M.remove_buffer_from_tab(tabpage, bufnr)
-  local buffers = M.get_tab_buffers(tabpage)
+  local buffers = M.get_tab_buffers_raw(tabpage)
   local next_buffers = {}
   local changed = false
   for _, existing in ipairs(buffers) do

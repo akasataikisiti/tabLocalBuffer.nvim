@@ -291,6 +291,67 @@ local function test_apply_layout_reorders_tabs_to_match_group_order()
   eq(model.get_tab_buffers(tabpages[3]), { b }, "third tab should match third editor group")
 end
 
+local function test_apply_layout_keeps_unnamed_buffers()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({
+    bufferline = {
+      enabled = false,
+      auto_sort_on_apply = false,
+    },
+  })
+
+  local named = new_named_buffer("named.txt")
+  vim.cmd.enew()
+  local unnamed = vim.api.nvim_get_current_buf()
+  vim.bo[unnamed].buflisted = true
+
+  local editor = require("tablocal_buffer.ui.editor")
+  editor.apply_layout({
+    groups = {
+      { named },
+    },
+    unassigned = {},
+  })
+
+  ok(vim.api.nvim_buf_is_valid(unnamed), "unnamed buffers should not be auto-deleted by layout apply")
+end
+
+local function test_editor_shows_unnamed_buffers_excluded_from_cycle()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({
+    cycle = {
+      exclude = {
+        predicates = {
+          function(ctx)
+            return ctx.bufname == ""
+          end,
+        },
+      },
+    },
+    bufferline = {
+      enabled = false,
+      auto_sort_on_apply = false,
+    },
+  })
+
+  vim.cmd.enew()
+  local unnamed = vim.api.nvim_get_current_buf()
+  vim.bo[unnamed].buflisted = true
+
+  local editor = require("tablocal_buffer.ui.editor")
+  local bufnr, winid = editor.open_editor()
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local expected = ('      "[No Name:%d]",'):format(unnamed)
+
+  ok(vim.tbl_contains(lines, expected), "editor should show unnamed buffers even when cycle excludes them")
+
+  vim.api.nvim_win_close(winid, true)
+end
+
 local function test_bufferline_sort_sanitizes_invalid_state()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -351,6 +412,8 @@ local tests = {
   test_editor_apply_layout_after_close,
   test_apply_layout_sorts_before_deleting_removed_buffers,
   test_apply_layout_reorders_tabs_to_match_group_order,
+  test_apply_layout_keeps_unnamed_buffers,
+  test_editor_shows_unnamed_buffers_excluded_from_cycle,
   test_bufferline_sort_sanitizes_invalid_state,
 }
 
