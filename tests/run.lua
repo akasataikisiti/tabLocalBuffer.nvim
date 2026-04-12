@@ -135,12 +135,29 @@ local function test_move_to_new_tab()
   eq(plugin.get_buf_tabnr(second), 1, "remaining buffer should stay in source tab")
 end
 
+local function test_move_to_new_tab_replaces_last_source_window()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  local only = new_named_buffer("move-last.lua")
+
+  plugin.move_current_window_to_new_tab()
+
+  vim.api.nvim_set_current_tabpage(vim.api.nvim_list_tabpages()[1])
+  eq(plugin.get_buf_tabnr(only), 2, "moved buffer should only belong to destination tab")
+  ok(vim.api.nvim_get_current_buf() ~= only, "source tab should no longer show the moved buffer")
+  ok(not plugin.is_cycle_candidate(vim.api.nvim_get_current_buf()), "source tab fallback should be unmanaged")
+end
+
 local tests = {
   test_cycle_candidate,
   test_navigation_and_registration,
   test_labels,
   test_editor_parser,
   test_move_to_new_tab,
+  test_move_to_new_tab_replaces_last_source_window,
 }
 
 for _, test in ipairs(tests) do

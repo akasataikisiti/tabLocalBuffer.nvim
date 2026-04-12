@@ -180,6 +180,18 @@ function M.move_current_window_to_new_tab()
         vim.api.nvim_win_set_buf(winid, fallback)
       end
     end
+  elseif #close_wins == #source_windows and #close_wins > 0 then
+    local placeholder = vim.api.nvim_create_buf(false, false)
+    local keep_win = close_wins[1]
+    if vim.api.nvim_win_is_valid(keep_win) then
+      vim.api.nvim_win_set_buf(keep_win, placeholder)
+    end
+    for index = 2, #close_wins do
+      local winid = close_wins[index]
+      if vim.api.nvim_win_is_valid(winid) then
+        pcall(vim.api.nvim_win_close, winid, false)
+      end
+    end
   elseif #close_wins < #source_windows then
     for _, winid in ipairs(close_wins) do
       if vim.api.nvim_win_is_valid(winid) then
