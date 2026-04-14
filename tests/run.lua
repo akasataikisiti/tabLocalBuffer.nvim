@@ -321,6 +321,41 @@ local function test_apply_layout_reorders_tabs_to_match_group_order()
   eq(model.get_tab_buffers(tabpages[3]), { b }, "third tab should match third editor group")
 end
 
+local function test_apply_layout_does_not_leave_new_tab_scratch_buffers_unassigned()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({
+    bufferline = {
+      enabled = false,
+      auto_sort_on_apply = false,
+    },
+  })
+
+  local a = new_named_buffer("a.txt")
+  local b = new_named_buffer("b.txt")
+  local c = new_named_buffer("c.txt")
+
+  local editor = require("tablocal_buffer.ui.editor")
+  editor.apply_layout({
+    groups = {
+      { a, b },
+      { c },
+    },
+    unassigned = {},
+  })
+
+  local bufnr, winid = editor.open_editor()
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+
+  for _, line in ipairs(lines) do
+    ok(not line:match("%[No Name:%d+%]"), "new tab scratch buffers should not remain as unassigned [No Name] entries")
+  end
+
+  vim.b[bufnr].tablocal_editor_cancelled = true
+  vim.api.nvim_win_close(winid, true)
+end
+
 local function test_apply_layout_keeps_unnamed_buffers()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -443,6 +478,7 @@ local tests = {
   test_editor_apply_layout_after_close,
   test_apply_layout_sorts_before_deleting_removed_buffers,
   test_apply_layout_reorders_tabs_to_match_group_order,
+  test_apply_layout_does_not_leave_new_tab_scratch_buffers_unassigned,
   test_apply_layout_keeps_unnamed_buffers,
   test_editor_shows_unnamed_buffers_excluded_from_cycle,
   test_bufferline_sort_sanitizes_invalid_state,

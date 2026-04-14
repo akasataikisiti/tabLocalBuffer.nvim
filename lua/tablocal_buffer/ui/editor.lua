@@ -191,10 +191,38 @@ local function overlap_size(group, buffers)
   return score
 end
 
+local function is_buffer_visible(bufnr)
+  for _, winid in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_get_buf(winid) == bufnr then
+      return true
+    end
+  end
+  return false
+end
+
 local function ensure_tabs(count)
+  local created_scratch_buffers = {}
+
   while #vim.api.nvim_list_tabpages() < count do
     vim.cmd.tabnew()
+    table.insert(created_scratch_buffers, vim.api.nvim_get_current_buf())
   end
+
+  return created_scratch_buffers
+end
+
+local function maybe_delete_created_scratch_buffer(bufnr)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return
+  end
+  if vim.api.nvim_buf_get_name(bufnr) ~= "" then
+    return
+  end
+  if vim.bo[bufnr].buftype ~= "" or vim.bo[bufnr].modified or is_buffer_visible(bufnr) then
+    return
+  end
+
+  pcall(vim.api.nvim_buf_delete, bufnr, { force = false })
 end
 
 local function tabs_by_best_overlap(groups)
@@ -258,16 +286,6 @@ local function reorder_tabs(tabpages)
     vim.api.nvim_set_current_tabpage(original_tab)
   end
 end
-
-local function is_buffer_visible(bufnr)
-  for _, winid in ipairs(vim.api.nvim_list_wins()) do
-    if vim.api.nvim_win_get_buf(winid) == bufnr then
-      return true
-    end
-  end
-  return false
-end
-
 local function maybe_delete_buffer(bufnr)
   if not vim.api.nvim_buf_is_valid(bufnr) then
     return
@@ -282,7 +300,7 @@ local function maybe_delete_buffer(bufnr)
 end
 
 function M.apply_layout(layout)
-  ensure_tabs(#layout.groups)
+  local created_scratch_buffers = ensure_tabs(#layout.groups)
   local tabs = tabs_by_best_overlap(layout.groups)
   local removed = {}
 
@@ -317,6 +335,10 @@ function M.apply_layout(layout)
 
   for bufnr in pairs(removed) do
     maybe_delete_buffer(bufnr)
+  end
+
+  for _, bufnr in ipairs(created_scratch_buffers) do
+    maybe_delete_created_scratch_buffer(bufnr)
   end
 end
 
