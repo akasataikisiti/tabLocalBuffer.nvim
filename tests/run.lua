@@ -214,6 +214,44 @@ local function test_move_to_new_tab_replaces_last_source_window()
   ok(plugin.is_cycle_candidate(vim.api.nvim_get_current_buf()), "source tab fallback unnamed buffer should remain manageable")
 end
 
+local function test_detach_current_buffer_keeps_tab_open_and_unassigns_buffer()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  local first = new_named_buffer("a.txt")
+  local second = new_named_buffer("b.txt")
+  vim.api.nvim_set_current_buf(first)
+
+  local detached = plugin.detach_current_buffer_from_tab()
+
+  ok(detached, "detach should report success")
+  eq(#vim.api.nvim_list_tabpages(), 1, "detaching should not close the tab")
+  eq(plugin.get_buf_tabnr(first), nil, "detached buffer should become unassigned")
+  eq(plugin.get_buf_tabnr(second), 1, "remaining buffer should stay assigned to the tab")
+  eq(vim.api.nvim_get_current_buf(), second, "current window should switch to another buffer in the tab")
+end
+
+local function test_delete_current_buffer_from_tab_removes_buffer_without_closing_tab()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  local first = new_named_buffer("a.txt")
+  local second = new_named_buffer("b.txt")
+  vim.api.nvim_set_current_buf(first)
+
+  local deleted = plugin.delete_current_buffer_from_tab()
+
+  ok(deleted, "delete should report success")
+  eq(#vim.api.nvim_list_tabpages(), 1, "deleting current tab-local buffer should not close the tab")
+  ok(not vim.api.nvim_buf_is_valid(first), "deleted buffer should be wiped")
+  eq(plugin.get_buf_tabnr(second), 1, "remaining buffer should stay assigned to the tab")
+  eq(vim.api.nvim_get_current_buf(), second, "window should remain on a valid fallback buffer")
+end
+
 local function test_editor_apply_layout_after_close()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -511,6 +549,8 @@ local tests = {
   test_editor_render_text,
   test_move_to_new_tab,
   test_move_to_new_tab_replaces_last_source_window,
+  test_detach_current_buffer_keeps_tab_open_and_unassigns_buffer,
+  test_delete_current_buffer_from_tab_removes_buffer_without_closing_tab,
   test_editor_apply_layout_after_close,
   test_apply_layout_sorts_before_deleting_removed_buffers,
   test_apply_layout_reorders_tabs_to_match_group_order,

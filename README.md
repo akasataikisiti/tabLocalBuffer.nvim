@@ -12,6 +12,7 @@
 - 既定キーマップは登録せず、`keymaps` で指定されたものだけ登録
 - `BufWinEnter` / `BufWipeout` ベースで各タブの `tablocal_buffers` を維持
 - `:TabLocalMoveToNewTab` で現在バッファを新規タブへ移送
+- `:TabLocalDetachBuffer` / `:TabLocalWriteDetachBuffer` / `:TabLocalDeleteBuffer` で現在バッファだけを安全に外せる
 - フローティング編集 UI でタブごとのバッファ割当を編集
 - `bufferline.nvim` があればグローバル順序計算とソートに利用可能
 
@@ -125,6 +126,9 @@ require("tablocal_buffer").setting({
 - `:TabLocalEditTabBuffers`
 - `:TabLocalBufferlineSort`
 - `:TabLocalMoveToNewTab`
+- `:TabLocalDetachBuffer`
+- `:TabLocalWriteDetachBuffer`
+- `:TabLocalDeleteBuffer`
 - `:TabLocalDebugState`
 
 ## 公開 API
@@ -134,6 +138,9 @@ require("tablocal_buffer").setting({
 - `bnext_tablocal()`
 - `bprevious_tablocal()`
 - `move_current_window_to_new_tab()`
+- `detach_current_buffer_from_tab()`
+- `write_and_detach_current_buffer_from_tab()`
+- `delete_current_buffer_from_tab()`
 - `open_editor()`
 - `get_buf_tabnr(bufnr)`
 - `get_global_buffer_order()`
@@ -143,6 +150,17 @@ require("tablocal_buffer").setting({
 ## 編集 UI
 
 `:TabLocalEditTabBuffers` は Lua テーブルを返す形式のフローティングバッファを開きます。`q` で閉じた場合は破棄され、通常に閉じた場合は `groups` と `unassigned` の内容が適用されます。
+
+## 安全に現在バッファを外すコマンド
+
+既存の `:q` / `:wq` / `:bd` の挙動は変更しません。代わりに、現在バッファだけをタブ所属から外す専用コマンドを使えます。
+
+- `:TabLocalDetachBuffer`
+  現在バッファを現在タブの所属一覧から外し、未所属状態にします。
+- `:TabLocalWriteDetachBuffer`
+  `:write` 後に現在バッファを現在タブの所属一覧から外します。
+- `:TabLocalDeleteBuffer`
+  現在バッファを現在タブの所属一覧から外し、その後バッファ自体を削除します。
 
 ```lua
 return {

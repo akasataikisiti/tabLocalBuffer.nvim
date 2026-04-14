@@ -83,6 +83,15 @@ COMMANDS                                            *tablocal_buffer-commands*
 `:TabLocalMoveToNewTab`
   現在バッファを新規タブへ移動します。
 
+`:TabLocalDetachBuffer`
+  現在バッファを現在タブの所属一覧から外します。タブは維持されます。
+
+`:TabLocalWriteDetachBuffer`
+  現在バッファを保存してから現在タブの所属一覧から外します。
+
+`:TabLocalDeleteBuffer`
+  現在バッファを現在タブの所属一覧から外し、その後バッファ自体を削除します。
+
 `:TabLocalDebugState`
   タブごとの内部状態を表示します。
 
@@ -103,6 +112,15 @@ API                                                      *tablocal_buffer-api*
 
 `require("tablocal_buffer").move_current_window_to_new_tab()`
   現在バッファを新しいタブへ移します。
+
+`require("tablocal_buffer").detach_current_buffer_from_tab()`
+  現在バッファを現在タブの所属一覧から外します。
+
+`require("tablocal_buffer").write_and_detach_current_buffer_from_tab()`
+  現在バッファを保存してから現在タブの所属一覧から外します。
+
+`require("tablocal_buffer").delete_current_buffer_from_tab()`
+  現在バッファを現在タブの所属一覧から外し、その後バッファ自体を削除します。
 
 `require("tablocal_buffer").open_editor()`
   編集 UI を開きます。
@@ -131,6 +149,16 @@ EDITOR                                                *tablocal_buffer-editor*
 
 `q` で閉じた場合は適用されません。通常に閉じた場合は内容を評価し、
 妥当なら各タブへ反映します。
+
+==============================================================================
+DETACH BUFFER                                     *tablocal_buffer-detach*
+
+既存の `:q`, `:wq`, `:bd` の挙動は変更しません。現在バッファだけを
+タブ所属から外したい場合は次を使います。
+
+  :TabLocalDetachBuffer
+  :TabLocalWriteDetachBuffer
+  :TabLocalDeleteBuffer
 
 ==============================================================================
  vim:tw=78:ts=8:noet:ft=help:norl:

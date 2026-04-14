@@ -195,6 +195,65 @@ function M.find_first_valid_buffer(tabpage)
   end
 end
 
+local function find_window_fallback_buffer(tabpage, excluded_bufnr)
+  for _, winid in ipairs(vim.api.nvim_tabpage_list_wins(tabpage)) do
+    local bufnr = vim.api.nvim_win_get_buf(winid)
+    if bufnr ~= excluded_bufnr and M.is_cycle_candidate(bufnr) then
+      return bufnr
+    end
+  end
+end
+
+function M.detach_buffer_from_tab(tabpage, bufnr)
+  if not vim.api.nvim_tabpage_is_valid(tabpage) or not vim.api.nvim_buf_is_valid(bufnr) then
+    return false
+  end
+
+  if not list_contains(M.get_tab_buffers_raw(tabpage), bufnr) then
+    return false
+  end
+
+  local tab_windows = vim.api.nvim_tabpage_list_wins(tabpage)
+  local target_windows = {}
+  for _, winid in ipairs(tab_windows) do
+    if vim.api.nvim_win_is_valid(winid) and vim.api.nvim_win_get_buf(winid) == bufnr then
+      table.insert(target_windows, winid)
+    end
+  end
+
+  M.remove_buffer_from_tab(tabpage, bufnr)
+
+  local fallback = M.find_first_valid_buffer(tabpage) or find_window_fallback_buffer(tabpage, bufnr)
+  if fallback then
+    for _, winid in ipairs(target_windows) do
+      if vim.api.nvim_win_is_valid(winid) then
+        vim.api.nvim_win_set_buf(winid, fallback)
+      end
+    end
+  elseif #target_windows == #tab_windows and #target_windows > 0 then
+    local placeholder = vim.api.nvim_create_buf(false, false)
+    local keep_win = target_windows[1]
+    if vim.api.nvim_win_is_valid(keep_win) then
+      vim.api.nvim_win_set_buf(keep_win, placeholder)
+    end
+    for index = 2, #target_windows do
+      local winid = target_windows[index]
+      if vim.api.nvim_win_is_valid(winid) then
+        pcall(vim.api.nvim_win_close, winid, false)
+      end
+    end
+  elseif #target_windows < #tab_windows then
+    for _, winid in ipairs(target_windows) do
+      if vim.api.nvim_win_is_valid(winid) then
+        pcall(vim.api.nvim_win_close, winid, false)
+      end
+    end
+  end
+
+  M.sync_tab_windows(tabpage)
+  return true
+end
+
 function M.get_buf_tabnr(bufnr)
   for index, tabpage in ipairs(vim.api.nvim_list_tabpages()) do
     if list_contains(M.get_tab_buffers(tabpage), bufnr) then

@@ -13,6 +13,9 @@ local command_names = {
   "TabLocalBufferlineSort",
   "TabLocalMoveToNewTab",
   "TabLocalEditTabBuffers",
+  "TabLocalDetachBuffer",
+  "TabLocalWriteDetachBuffer",
+  "TabLocalDeleteBuffer",
   "TabLocalDebugState",
 }
 
@@ -39,6 +42,15 @@ local function create_commands()
   end, {})
   vim.api.nvim_create_user_command("TabLocalEditTabBuffers", function()
     M.open_editor()
+  end, {})
+  vim.api.nvim_create_user_command("TabLocalDetachBuffer", function()
+    M.detach_current_buffer_from_tab()
+  end, {})
+  vim.api.nvim_create_user_command("TabLocalWriteDetachBuffer", function()
+    M.write_and_detach_current_buffer_from_tab()
+  end, {})
+  vim.api.nvim_create_user_command("TabLocalDeleteBuffer", function()
+    M.delete_current_buffer_from_tab()
   end, {})
   vim.api.nvim_create_user_command("TabLocalDebugState", function()
     local state = {}
@@ -164,45 +176,7 @@ function M.move_current_window_to_new_tab()
   end
 
   vim.api.nvim_set_current_tabpage(source_tab)
-  local source_windows = vim.api.nvim_tabpage_list_wins(source_tab)
-  local close_wins = {}
-  for _, winid in ipairs(source_windows) do
-    if vim.api.nvim_win_get_buf(winid) == bufnr then
-      table.insert(close_wins, winid)
-    end
-  end
-
-  model.remove_buffer_from_tab(source_tab, bufnr)
-  local fallback = model.find_first_valid_buffer(source_tab)
-  if fallback then
-    for _, winid in ipairs(close_wins) do
-      if vim.api.nvim_win_is_valid(winid) then
-        vim.api.nvim_win_set_buf(winid, fallback)
-      end
-    end
-  elseif #close_wins == #source_windows and #close_wins > 0 then
-    local placeholder = vim.api.nvim_create_buf(false, false)
-    local keep_win = close_wins[1]
-    if vim.api.nvim_win_is_valid(keep_win) then
-      vim.api.nvim_win_set_buf(keep_win, placeholder)
-    end
-    for index = 2, #close_wins do
-      local winid = close_wins[index]
-      if vim.api.nvim_win_is_valid(winid) then
-        pcall(vim.api.nvim_win_close, winid, false)
-      end
-    end
-  elseif #close_wins < #source_windows then
-    for _, winid in ipairs(close_wins) do
-      if vim.api.nvim_win_is_valid(winid) then
-        pcall(vim.api.nvim_win_close, winid, false)
-      end
-    end
-  end
-
-  if vim.api.nvim_tabpage_is_valid(source_tab) then
-    model.sync_tab_windows(source_tab)
-  end
+  model.detach_buffer_from_tab(source_tab, bufnr)
 
   vim.api.nvim_set_current_tabpage(new_tab)
   model.sync_tab_windows(new_tab)
@@ -217,6 +191,24 @@ end
 
 function M.open_editor()
   return editor.open_editor()
+end
+
+function M.detach_current_buffer_from_tab()
+  return model.detach_buffer_from_tab(vim.api.nvim_get_current_tabpage(), vim.api.nvim_get_current_buf())
+end
+
+function M.write_and_detach_current_buffer_from_tab()
+  vim.cmd.write()
+  return M.detach_current_buffer_from_tab()
+end
+
+function M.delete_current_buffer_from_tab()
+  local bufnr = vim.api.nvim_get_current_buf()
+  local detached = model.detach_buffer_from_tab(vim.api.nvim_get_current_tabpage(), bufnr)
+  if detached and vim.api.nvim_buf_is_valid(bufnr) then
+    pcall(vim.api.nvim_buf_delete, bufnr, { force = false })
+  end
+  return detached
 end
 
 return M
