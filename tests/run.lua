@@ -356,6 +356,42 @@ local function test_apply_layout_does_not_leave_new_tab_scratch_buffers_unassign
   vim.api.nvim_win_close(winid, true)
 end
 
+local function test_apply_layout_deletes_removed_unassigned_buffers()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({
+    bufferline = {
+      enabled = false,
+      auto_sort_on_apply = false,
+    },
+  })
+
+  local kept = new_named_buffer("kept.txt")
+  local removed = new_named_buffer("removed.txt")
+
+  local editor = require("tablocal_buffer.ui.editor")
+  editor.apply_layout({
+    groups = {
+      { kept },
+    },
+    unassigned = {
+      removed,
+    },
+  })
+
+  ok(vim.api.nvim_buf_is_valid(removed), "buffer should remain while it is listed as unassigned")
+
+  editor.apply_layout({
+    groups = {
+      { kept },
+    },
+    unassigned = {},
+  })
+
+  ok(not vim.api.nvim_buf_is_valid(removed), "buffer removed from unassigned should be deleted")
+end
+
 local function test_apply_layout_keeps_unnamed_buffers()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -479,6 +515,7 @@ local tests = {
   test_apply_layout_sorts_before_deleting_removed_buffers,
   test_apply_layout_reorders_tabs_to_match_group_order,
   test_apply_layout_does_not_leave_new_tab_scratch_buffers_unassigned,
+  test_apply_layout_deletes_removed_unassigned_buffers,
   test_apply_layout_keeps_unnamed_buffers,
   test_editor_shows_unnamed_buffers_excluded_from_cycle,
   test_bufferline_sort_sanitizes_invalid_state,

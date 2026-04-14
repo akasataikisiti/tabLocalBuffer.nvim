@@ -300,14 +300,13 @@ local function maybe_delete_buffer(bufnr)
 end
 
 function M.apply_layout(layout)
+  local known_buffers = all_known_buffers()
   local created_scratch_buffers = ensure_tabs(#layout.groups)
   local tabs = tabs_by_best_overlap(layout.groups)
   local removed = {}
 
-  for _, tabpage in ipairs(vim.api.nvim_list_tabpages()) do
-    for _, bufnr in ipairs(model.get_tab_buffers(tabpage)) do
-      removed[bufnr] = true
-    end
+  for _, bufnr in ipairs(known_buffers) do
+    removed[bufnr] = true
   end
 
   for index, group in ipairs(layout.groups) do
