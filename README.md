@@ -43,20 +43,20 @@ require("tablocal_buffer").setting({
     include_terminal = true,
     require_buflisted = true,
     exclude = {
+      unnamed = false,
       filetypes = { "fugitive", "neo-tree" },
       buftypes = { "help", "quickfix", "prompt", "nofile" },
       name_patterns = { "^fugitive://" },
-      predicates = {
-        function(ctx)
-          return ctx.bufname == ""
-        end,
-      },
+      predicates = {},
     },
   },
 })
 ```
 
 `setup(opts)` は `setting(opts)` の alias です。
+
+`[No Name]` の通常バッファは既定で巡回対象に含まれます。除外したい場合は
+`cycle.exclude.unnamed = true` を指定してください。
 
 ## コマンド
 

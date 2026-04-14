@@ -19,6 +19,7 @@ local defaults = {
     include_terminal = true,
     require_buflisted = true,
     exclude = {
+      unnamed = false,
       filetypes = { "fugitive" },
       buftypes = {},
       name_patterns = { "^fugitive://" },

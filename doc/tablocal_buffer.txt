@@ -47,6 +47,7 @@ OPTIONS                                              *tablocal_buffer-options*
       include_terminal = true,
       require_buflisted = true,
       exclude = {
+        unnamed = false,
         filetypes = { "fugitive" },
         buftypes = {},
         name_patterns = { "^fugitive://" },
@@ -59,6 +60,10 @@ OPTIONS                                              *tablocal_buffer-options*
 `cycle.exclude.predicates` には `ctx` を受け取る関数を指定できます。`ctx`
 は `bufnr`, `buflisted`, `buftype`, `filetype`, `bufname`, `modified`
 を持ちます。
+
+`cycle.exclude.unnamed` が `false` の間は、通常の `[No Name]` バッファは
+`buflisted` に関わらず巡回対象に含めます。無名バッファを除外したい場合は
+これを `true` にします。
 
 ==============================================================================
 COMMANDS                                            *tablocal_buffer-commands*

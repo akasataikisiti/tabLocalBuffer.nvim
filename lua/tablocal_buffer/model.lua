@@ -42,6 +42,10 @@ function M.get_cycle_context(bufnr)
   }
 end
 
+local function is_unnamed_normal_buffer(ctx)
+  return ctx.bufname == "" and ctx.buftype == ""
+end
+
 function M.is_cycle_candidate(bufnr)
   if not vim.api.nvim_buf_is_valid(bufnr) then
     return false
@@ -49,8 +53,13 @@ function M.is_cycle_candidate(bufnr)
 
   local opts = config.get().cycle
   local ctx = M.get_cycle_context(bufnr)
+  local exclude = opts.exclude
 
-  if opts.require_buflisted and not ctx.buflisted then
+  if exclude.unnamed and is_unnamed_normal_buffer(ctx) then
+    return false
+  end
+
+  if opts.require_buflisted and not ctx.buflisted and not is_unnamed_normal_buffer(ctx) then
     return false
   end
 
@@ -60,7 +69,6 @@ function M.is_cycle_candidate(bufnr)
     end
   end
 
-  local exclude = opts.exclude
   if vim.list_contains(exclude.filetypes, ctx.filetype) then
     return false
   end
@@ -92,7 +100,12 @@ function M.is_editor_candidate(bufnr)
   local opts = config.get().cycle
   local ctx = M.get_cycle_context(bufnr)
 
-  if opts.require_buflisted and not ctx.buflisted then
+  local exclude = opts.exclude
+  if exclude.unnamed and is_unnamed_normal_buffer(ctx) then
+    return false
+  end
+
+  if opts.require_buflisted and not ctx.buflisted and not is_unnamed_normal_buffer(ctx) then
     return false
   end
 

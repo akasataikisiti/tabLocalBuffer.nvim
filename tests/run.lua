@@ -57,6 +57,10 @@ local function test_cycle_candidate()
   vim.api.nvim_buf_set_name(help_buf, "help.txt")
   ok(not plugin.is_cycle_candidate(help_buf), "help buffer should be excluded")
 
+  vim.cmd.enew()
+  local unnamed = vim.api.nvim_get_current_buf()
+  ok(plugin.is_cycle_candidate(unnamed), "unnamed normal buffer should be included by default")
+
   plugin.setting({
     cycle = {
       exclude = {
@@ -65,6 +69,15 @@ local function test_cycle_candidate()
     },
   })
   ok(not plugin.is_cycle_candidate(listed), "custom exclusion should apply")
+
+  plugin.setting({
+    cycle = {
+      exclude = {
+        unnamed = true,
+      },
+    },
+  })
+  ok(not plugin.is_cycle_candidate(unnamed), "unnamed exclusion option should disable unnamed buffers")
 end
 
 local function test_navigation_and_registration()
@@ -82,6 +95,23 @@ local function test_navigation_and_registration()
   eq(vim.api.nvim_get_current_buf(), second, "bnext should move within tab order")
   plugin.bprevious_tablocal()
   eq(vim.api.nvim_get_current_buf(), first, "bprevious should wrap back")
+end
+
+local function test_navigation_includes_unnamed_buffers_by_default()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  local named = new_named_buffer("one.lua")
+  vim.cmd.enew()
+  local unnamed = vim.api.nvim_get_current_buf()
+
+  eq(vim.api.nvim_tabpage_get_var(0, "tablocal_buffers"), { named, unnamed }, "unnamed buffer should register in current tab")
+
+  vim.api.nvim_set_current_buf(named)
+  plugin.bnext_tablocal()
+  eq(vim.api.nvim_get_current_buf(), unnamed, "bnext should include unnamed buffers")
 end
 
 local function test_labels()
@@ -181,7 +211,7 @@ local function test_move_to_new_tab_replaces_last_source_window()
   vim.api.nvim_set_current_tabpage(vim.api.nvim_list_tabpages()[1])
   eq(plugin.get_buf_tabnr(only), 2, "moved buffer should only belong to destination tab")
   ok(vim.api.nvim_get_current_buf() ~= only, "source tab should no longer show the moved buffer")
-  ok(not plugin.is_cycle_candidate(vim.api.nvim_get_current_buf()), "source tab fallback should be unmanaged")
+  ok(plugin.is_cycle_candidate(vim.api.nvim_get_current_buf()), "source tab fallback unnamed buffer should remain manageable")
 end
 
 local function test_editor_apply_layout_after_close()
@@ -404,6 +434,7 @@ end
 local tests = {
   test_cycle_candidate,
   test_navigation_and_registration,
+  test_navigation_includes_unnamed_buffers_by_default,
   test_labels,
   test_editor_parser,
   test_editor_render_text,
