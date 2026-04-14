@@ -2,6 +2,10 @@
 
 タブごとに巡回対象バッファ集合を持ち、`bnext` / `bprevious` 相当の移動をタブローカル化する Neovim プラグインです。
 
+- Repository: `akasataikisiti/tabLocalBuffer.nvim`
+- Author: `akasataikisiti`
+- License: `MIT`
+
 ## 特徴
 
 - `require("tablocal_buffer").setting(opts)` を正式な設定入口として提供
@@ -17,7 +21,7 @@
 
 ```lua
 {
-  "yourname/tablocal_buffer.nvim",
+  "akasataikisiti/tabLocalBuffer.nvim",
   config = function()
     require("tablocal_buffer").setting()
   end,
@@ -57,6 +61,62 @@ require("tablocal_buffer").setting({
 
 `[No Name]` の通常バッファは既定で巡回対象に含まれます。除外したい場合は
 `cycle.exclude.unnamed = true` を指定してください。
+
+## 設定項目
+
+- `keymaps`
+  正規化済みコマンドを呼ぶキーマップ定義です。指定した項目だけ登録されます。デフォルトは `{}` で、何も登録しません。
+- `keymaps.bnext`
+  次のタブローカルバッファへ移動するノーマルモードマップです。デフォルトは未設定です。
+- `keymaps.bprevious`
+  前のタブローカルバッファへ移動するノーマルモードマップです。デフォルトは未設定です。
+- `keymaps.move_to_new_tab`
+  現在バッファを新規タブへ移すノーマルモードマップです。デフォルトは未設定です。
+- `keymaps.open_editor`
+  編集 UI を開くノーマルモードマップです。デフォルトは未設定です。
+- `commands.enabled`
+  ユーザコマンドを定義するかどうかです。デフォルトは `true` です。
+- `replace_builtin_bnext`
+  コマンドラインで入力した `:bnext` / `:bprevious` を `:TabLocalBnext` / `:TabLocalBprevious` に置き換えるかどうかです。デフォルトは `false` です。
+- `bufferline.enabled`
+  `bufferline.nvim` 連携を有効にするかどうかです。`true` のときだけ `sort_bufferline()` と編集 UI 適用時のソートが動作します。デフォルトは `true` です。
+- `bufferline.auto_sort_on_apply`
+  編集 UI の適用後に `bufferline.nvim` を自動ソートするかどうかです。デフォルトは `true` です。
+- `editor.width_ratio`
+  編集 UI の幅を `vim.o.columns` に対する比率で指定します。デフォルトは `0.6` です。
+- `editor.height_ratio`
+  編集 UI の高さを `vim.o.lines` に対する比率で指定します。デフォルトは `0.6` です。
+- `editor.border`
+  編集 UI のフローティングウィンドウの border 指定です。デフォルトは `"rounded"` です。
+- `cycle.include_terminal`
+  `buftype == "terminal"` を巡回対象に含めるかどうかです。デフォルトは `true` です。
+- `cycle.require_buflisted`
+  通常は `buflisted` のバッファだけを巡回対象にするかどうかです。デフォルトは `true` です。通常の `[No Name]` バッファはこの値にかかわらず既定で巡回対象に含めます。
+- `cycle.exclude.unnamed`
+  通常の `[No Name]` バッファを巡回対象から除外するかどうかです。デフォルトは `false` です。
+- `cycle.exclude.filetypes`
+  巡回対象から除外する `filetype` の一覧です。デフォルトは `{ "fugitive" }` です。
+- `cycle.exclude.buftypes`
+  巡回対象から除外する `buftype` の一覧です。デフォルトは `{}` です。
+- `cycle.exclude.name_patterns`
+  バッファ名に対して Lua パターンで除外する条件です。デフォルトは `{ "^fugitive://" }` です。
+- `cycle.exclude.predicates`
+  `ctx` を受け取る Lua 関数の一覧です。どれかが `true` を返すとそのバッファを除外します。デフォルトは `{}` です。
+
+`cycle.exclude.predicates` の `ctx` には次の値が入ります。
+
+- `ctx.bufnr`
+  バッファ番号です。
+- `ctx.buflisted`
+  `buflisted` の真偽値です。
+- `ctx.buftype`
+  `buftype` の文字列です。
+- `ctx.filetype`
+  `filetype` の文字列です。
+- `ctx.bufname`
+  `nvim_buf_get_name()` で取得したフルパス、または無名バッファでは空文字です。
+- `ctx.modified`
+  バッファが変更済みかどうかです。
 
 ## コマンド
 
@@ -103,3 +163,7 @@ return {
 ```bash
 nvim --headless -u NONE -i NONE -c "set rtp+=." -l tests/run.lua
 ```
+
+## License
+
+MIT License. See [LICENSE](LICENSE).
