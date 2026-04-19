@@ -286,6 +286,25 @@ local function reorder_tabs(tabpages)
     vim.api.nvim_set_current_tabpage(original_tab)
   end
 end
+
+local function close_extra_tabs(tabpages, keep_count)
+  local to_close = {}
+  for index = keep_count + 1, #tabpages do
+    local tabpage = tabpages[index]
+    if vim.api.nvim_tabpage_is_valid(tabpage) then
+      table.insert(to_close, tabpage)
+    end
+  end
+
+  for index = #to_close, 1, -1 do
+    local tabpage = to_close[index]
+    if vim.api.nvim_tabpage_is_valid(tabpage) then
+      vim.api.nvim_set_current_tabpage(tabpage)
+      vim.cmd.tabclose()
+    end
+  end
+end
+
 local function maybe_delete_buffer(bufnr)
   if not vim.api.nvim_buf_is_valid(bufnr) then
     return
@@ -327,6 +346,7 @@ function M.apply_layout(layout)
   end
 
   reorder_tabs(tabs)
+  close_extra_tabs(tabs, #layout.groups)
 
   if config.get().bufferline.auto_sort_on_apply then
     bufferline.sort_bufferline()

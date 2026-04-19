@@ -394,6 +394,54 @@ local function test_apply_layout_does_not_leave_new_tab_scratch_buffers_unassign
   vim.api.nvim_win_close(winid, true)
 end
 
+local function test_apply_layout_closes_removed_tabs_instead_of_leaving_empty_groups()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  local model = require("tablocal_buffer.model")
+  plugin.setting({
+    bufferline = {
+      enabled = false,
+      auto_sort_on_apply = false,
+    },
+  })
+
+  local a = new_named_buffer("a.txt")
+  local b = new_named_buffer("b.txt")
+  vim.cmd.tabnew()
+  local c = new_named_buffer("c.txt")
+  local d = new_named_buffer("d.txt")
+  vim.cmd.tabnew()
+  local e = new_named_buffer("e.txt")
+  local f = new_named_buffer("f.txt")
+
+  local editor = require("tablocal_buffer.ui.editor")
+  editor.apply_layout({
+    groups = {
+      { a, b },
+      { e, f },
+    },
+    unassigned = {},
+  })
+
+  local tabpages = vim.api.nvim_list_tabpages()
+  eq(#tabpages, 2, "removed groups should close extra tabs")
+  eq(model.get_tab_buffers(tabpages[1]), { a, b }, "first tab should keep the first group")
+  eq(model.get_tab_buffers(tabpages[2]), { e, f }, "second tab should keep the remaining group")
+  ok(not vim.api.nvim_buf_is_valid(c), "buffers from removed tabs should be deleted when no longer referenced")
+  ok(not vim.api.nvim_buf_is_valid(d), "all removed tab buffers should be deleted when no longer referenced")
+
+  local bufnr, winid = editor.open_editor()
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local joined = table.concat(lines, "\n")
+  ok(not joined:match('%"c%.txt%"'), "removed tab buffer should not reappear as unassigned")
+  ok(not joined:match('%"d%.txt%"'), "removed tab buffer should not reappear as unassigned")
+  ok(not joined:match("{%s*}%s*,"), "editor should not render an empty trailing group after tab removal")
+
+  vim.b[bufnr].tablocal_editor_cancelled = true
+  vim.api.nvim_win_close(winid, true)
+end
+
 local function test_apply_layout_deletes_removed_unassigned_buffers()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -555,6 +603,7 @@ local tests = {
   test_apply_layout_sorts_before_deleting_removed_buffers,
   test_apply_layout_reorders_tabs_to_match_group_order,
   test_apply_layout_does_not_leave_new_tab_scratch_buffers_unassigned,
+  test_apply_layout_closes_removed_tabs_instead_of_leaving_empty_groups,
   test_apply_layout_deletes_removed_unassigned_buffers,
   test_apply_layout_keeps_unnamed_buffers,
   test_editor_shows_unnamed_buffers_excluded_from_cycle,
