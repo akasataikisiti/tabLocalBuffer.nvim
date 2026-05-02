@@ -472,13 +472,18 @@ function M.open_editor()
     close_editor(bufnr, winid)
   end, { buffer = bufnr, nowait = true, silent = true })
 
-  vim.keymap.set("n", "<C-j>", function()
-    M.insert_empty_group(bufnr, winid)
-  end, { buffer = bufnr, nowait = true, silent = true, desc = "tablocal_buffer:add_empty_group" })
+  local keymaps = config.get().editor.keymaps or {}
+  if keymaps.add_empty_group and keymaps.add_empty_group ~= "" then
+    vim.keymap.set("n", keymaps.add_empty_group, function()
+      M.insert_empty_group(bufnr, winid)
+    end, { buffer = bufnr, nowait = true, silent = true, desc = "tablocal_buffer:add_empty_group" })
+  end
 
-  vim.keymap.set("n", "<C-d>", function()
-    M.delete_group_at_cursor(bufnr, winid)
-  end, { buffer = bufnr, nowait = true, silent = true, desc = "tablocal_buffer:delete_group" })
+  if keymaps.delete_group and keymaps.delete_group ~= "" then
+    vim.keymap.set("n", keymaps.delete_group, function()
+      M.delete_group_at_cursor(bufnr, winid)
+    end, { buffer = bufnr, nowait = true, silent = true, desc = "tablocal_buffer:delete_group" })
+  end
 
   vim.api.nvim_create_autocmd("BufWinLeave", {
     buffer = bufnr,

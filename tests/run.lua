@@ -266,6 +266,31 @@ local function test_editor_delete_group_at_cursor()
   vim.api.nvim_win_close(winid, true)
 end
 
+local function test_editor_keymaps_are_configurable()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({
+    editor = {
+      keymaps = {
+        add_empty_group = "<leader>j",
+        delete_group = "<leader>d",
+      },
+    },
+  })
+
+  local editor = require("tablocal_buffer.ui.editor")
+  local bufnr, winid = editor.open_editor()
+
+  ok(vim.fn.maparg("<leader>j", "n", false, true).buffer == 1, "custom add group mapping should be registered")
+  ok(vim.fn.maparg("<leader>d", "n", false, true).buffer == 1, "custom delete group mapping should be registered")
+  ok(vim.tbl_isempty(vim.fn.maparg("<C-J>", "n", false, true)), "default add group mapping should not be registered when overridden")
+  ok(vim.tbl_isempty(vim.fn.maparg("<C-D>", "n", false, true)), "default delete group mapping should not be registered when overridden")
+
+  vim.b[bufnr].tablocal_editor_cancelled = true
+  vim.api.nvim_win_close(winid, true)
+end
+
 local function test_move_to_new_tab()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -682,6 +707,7 @@ local tests = {
   test_editor_render_text,
   test_editor_insert_empty_group,
   test_editor_delete_group_at_cursor,
+  test_editor_keymaps_are_configurable,
   test_move_to_new_tab,
   test_move_to_new_tab_replaces_last_source_window,
   test_detach_current_buffer_keeps_tab_open_and_unassigns_buffer,

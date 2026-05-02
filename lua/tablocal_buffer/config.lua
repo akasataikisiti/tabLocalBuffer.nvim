@@ -14,6 +14,10 @@ local defaults = {
     width_ratio = 0.6,
     height_ratio = 0.6,
     border = "rounded",
+    keymaps = {
+      add_empty_group = "<C-j>",
+      delete_group = "<C-d>",
+    },
   },
   cycle = {
     include_terminal = true,

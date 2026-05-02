@@ -42,6 +42,10 @@ OPTIONS                                              *tablocal_buffer-options*
       width_ratio = 0.6,
       height_ratio = 0.6,
       border = "rounded",
+      keymaps = {
+        add_empty_group = "<C-j>",
+        delete_group = "<C-d>",
+      },
     },
     cycle = {
       include_terminal = true,
@@ -153,6 +157,8 @@ EDITOR                                                *tablocal_buffer-editor*
 編集 UI 上では、ノーマルモードの CTRL-J で `groups` 末尾に空の group
 を追加できます。
 `groups` 内では、CTRL-D でカーソル位置の group を削除できます。
+これらは `editor.keymaps.add_empty_group` と `editor.keymaps.delete_group`
+で変更できます。
 
 ==============================================================================
 DETACH BUFFER                                     *tablocal_buffer-detach*

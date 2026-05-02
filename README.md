@@ -44,6 +44,12 @@ require("tablocal_buffer").setting({
     enabled = true,
     auto_sort_on_apply = true,
   },
+  editor = {
+    keymaps = {
+      add_empty_group = "<C-j>",
+      delete_group = "<C-d>",
+    },
+  },
   cycle = {
     include_terminal = true,
     require_buflisted = true,
@@ -89,6 +95,10 @@ require("tablocal_buffer").setting({
   編集 UI の高さを `vim.o.lines` に対する比率で指定します。デフォルトは `0.6` です。
 - `editor.border`
   編集 UI のフローティングウィンドウの border 指定です。デフォルトは `"rounded"` です。
+- `editor.keymaps.add_empty_group`
+  編集 UI 上で `groups` 末尾に空の group を追加するノーマルモードマップです。デフォルトは `"<C-j>"` です。空文字にすると登録しません。
+- `editor.keymaps.delete_group`
+  編集 UI 上でカーソル位置の group を削除するノーマルモードマップです。デフォルトは `"<C-d>"` です。空文字にすると登録しません。
 - `cycle.include_terminal`
   `buftype == "terminal"` を巡回対象に含めるかどうかです。デフォルトは `true` です。
 - `cycle.require_buflisted`
@@ -149,7 +159,7 @@ require("tablocal_buffer").setting({
 
 ## 編集 UI
 
-`:TabLocalEditTabBuffers` は Lua テーブルを返す形式のフローティングバッファを開きます。`q` で閉じた場合は破棄され、通常に閉じた場合は `groups` と `unassigned` の内容が適用されます。編集 UI 上では、ノーマルモードの `<C-j>` で `groups` 末尾に空の group を追加できます。`groups` 内では `<C-d>` でカーソル位置の group を削除できます。
+`:TabLocalEditTabBuffers` は Lua テーブルを返す形式のフローティングバッファを開きます。`q` で閉じた場合は破棄され、通常に閉じた場合は `groups` と `unassigned` の内容が適用されます。編集 UI 上では、ノーマルモードの `<C-j>` で `groups` 末尾に空の group を追加できます。`groups` 内では `<C-d>` でカーソル位置の group を削除できます。これらは `editor.keymaps` で変更できます。
 
 ## 安全に現在バッファを外すコマンド
 
