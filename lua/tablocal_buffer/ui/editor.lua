@@ -66,8 +66,8 @@ local function encode_state()
 end
 
 local function validate_group(group, seen, reverse)
-  if type(group) ~= "table" or vim.tbl_isempty(group) then
-    return nil, "each group must be a non-empty table"
+  if type(group) ~= "table" then
+    return nil, "each group must be a table"
   end
 
   local resolved = {}
@@ -174,6 +174,40 @@ function M.render_editor_text(payload)
   table.insert(lines, "  },")
   table.insert(lines, "}")
   return lines
+end
+
+local function find_groups_close_line(lines)
+  local groups_indent = nil
+  for index, line in ipairs(lines) do
+    if not groups_indent then
+      groups_indent = line:match("^(%s*)groups%s*=%s*{%s*$")
+    elseif line:match("^" .. groups_indent .. "},%s*$") then
+      return index, groups_indent
+    end
+  end
+end
+
+function M.insert_empty_group(bufnr, winid)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local close_line, groups_indent = find_groups_close_line(lines)
+  if not close_line then
+    vim.notify("tablocal_buffer: could not find groups block", vim.log.levels.ERROR)
+    return false
+  end
+
+  local group_indent = groups_indent .. "  "
+  local entry_indent = group_indent .. "  "
+  local inserted = {
+    group_indent .. "{",
+    entry_indent,
+    group_indent .. "},",
+  }
+  vim.api.nvim_buf_set_lines(bufnr, close_line - 1, close_line - 1, false, inserted)
+
+  if winid and vim.api.nvim_win_is_valid(winid) then
+    vim.api.nvim_win_set_cursor(winid, { close_line + 1, #entry_indent })
+  end
+  return true
 end
 
 local function overlap_size(group, buffers)
@@ -402,6 +436,10 @@ function M.open_editor()
     vim.b[bufnr].tablocal_editor_cancelled = true
     close_editor(bufnr, winid)
   end, { buffer = bufnr, nowait = true, silent = true })
+
+  vim.keymap.set("n", "<C-j>", function()
+    M.insert_empty_group(bufnr, winid)
+  end, { buffer = bufnr, nowait = true, silent = true, desc = "tablocal_buffer:add_empty_group" })
 
   vim.api.nvim_create_autocmd("BufWinLeave", {
     buffer = bufnr,

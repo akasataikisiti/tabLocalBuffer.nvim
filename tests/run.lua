@@ -146,6 +146,11 @@ local function test_editor_parser()
     "return { groups = { { 'a' }, { 'a' } } }",
   }, { a = 1 })
   ok(invalid == nil, "duplicate labels should fail validation")
+
+  local empty_group = editor.parse_editor_text({
+    "return { groups = { { 'a' }, {} } }",
+  }, { a = 1 })
+  eq(empty_group, { groups = { { 1 }, {} }, unassigned = {} }, "empty groups should be accepted")
 end
 
 local function test_editor_render_text()
@@ -179,6 +184,36 @@ local function test_editor_render_text()
     "  },",
     "}",
   }, "editor renderer should produce multiline editable layout")
+end
+
+local function test_editor_insert_empty_group()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  new_named_buffer("a.txt")
+
+  local editor = require("tablocal_buffer.ui.editor")
+  local bufnr, winid = editor.open_editor()
+  local map = vim.fn.maparg("<C-J>", "n", false, true)
+  ok(map.buffer == 1, "editor should register buffer-local Ctrl-j mapping")
+  ok(editor.insert_empty_group(bufnr, winid), "editor should insert an empty group")
+
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  eq({
+    lines[7],
+    lines[8],
+    lines[9],
+  }, {
+    "    {",
+    "      ",
+    "    },",
+  }, "empty group should be inserted before the groups block closes")
+  eq(vim.api.nvim_win_get_cursor(winid), { 8, 5 }, "cursor should move inside the new empty group")
+
+  vim.b[bufnr].tablocal_editor_cancelled = true
+  vim.api.nvim_win_close(winid, true)
 end
 
 local function test_move_to_new_tab()
@@ -595,6 +630,7 @@ local tests = {
   test_labels,
   test_editor_parser,
   test_editor_render_text,
+  test_editor_insert_empty_group,
   test_move_to_new_tab,
   test_move_to_new_tab_replaces_last_source_window,
   test_detach_current_buffer_keeps_tab_open_and_unassigns_buffer,

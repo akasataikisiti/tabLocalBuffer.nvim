@@ -149,7 +149,7 @@ require("tablocal_buffer").setting({
 
 ## 編集 UI
 
-`:TabLocalEditTabBuffers` は Lua テーブルを返す形式のフローティングバッファを開きます。`q` で閉じた場合は破棄され、通常に閉じた場合は `groups` と `unassigned` の内容が適用されます。
+`:TabLocalEditTabBuffers` は Lua テーブルを返す形式のフローティングバッファを開きます。`q` で閉じた場合は破棄され、通常に閉じた場合は `groups` と `unassigned` の内容が適用されます。編集 UI 上では、ノーマルモードの `<C-j>` で `groups` 末尾に空の group を追加できます。
 
 ## 安全に現在バッファを外すコマンド
 
