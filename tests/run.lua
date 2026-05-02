@@ -216,6 +216,56 @@ local function test_editor_insert_empty_group()
   vim.api.nvim_win_close(winid, true)
 end
 
+local function test_editor_delete_group_at_cursor()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  local editor = require("tablocal_buffer.ui.editor")
+  local bufnr, winid = editor.open_editor()
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+    "-- Edit tab-local buffers and write/quit to apply. Press q to close without saving. Duplicate basenames keep the shown :<bufnr> suffix.",
+    "return {",
+    "  groups = {",
+    "    {",
+    '      "model.lua",',
+    "    },",
+    "    {",
+    '      "labels.lua",',
+    '      "bash",',
+    "    },",
+    "  },",
+    "",
+    "  -- Unassigned buffers (not in any tab). Move labels above or leave here to keep unassigned.",
+    "  unassigned = {",
+    "    -- (none)",
+    "  },",
+    "}",
+  })
+
+  local map = vim.fn.maparg("<C-D>", "n", false, true)
+  ok(map.buffer == 1, "editor should register buffer-local Ctrl-d mapping")
+  vim.api.nvim_win_set_cursor(winid, { 5, 8 })
+  ok(editor.delete_group_at_cursor(bufnr, winid), "editor should delete the group at the cursor")
+
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  eq({
+    lines[4],
+    lines[5],
+    lines[6],
+    lines[7],
+  }, {
+    "    {",
+    '      "labels.lua",',
+    '      "bash",',
+    "    },",
+  }, "only the group containing the cursor should be deleted")
+
+  vim.b[bufnr].tablocal_editor_cancelled = true
+  vim.api.nvim_win_close(winid, true)
+end
+
 local function test_move_to_new_tab()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -631,6 +681,7 @@ local tests = {
   test_editor_parser,
   test_editor_render_text,
   test_editor_insert_empty_group,
+  test_editor_delete_group_at_cursor,
   test_move_to_new_tab,
   test_move_to_new_tab_replaces_last_source_window,
   test_detach_current_buffer_keeps_tab_open_and_unassigns_buffer,

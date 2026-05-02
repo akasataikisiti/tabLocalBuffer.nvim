@@ -152,6 +152,7 @@ EDITOR                                                *tablocal_buffer-editor*
 
 編集 UI 上では、ノーマルモードの CTRL-J で `groups` 末尾に空の group
 を追加できます。
+`groups` 内では、CTRL-D でカーソル位置の group を削除できます。
 
 ==============================================================================
 DETACH BUFFER                                     *tablocal_buffer-detach*

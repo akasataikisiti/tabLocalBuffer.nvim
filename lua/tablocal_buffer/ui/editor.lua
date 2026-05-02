@@ -176,7 +176,7 @@ function M.render_editor_text(payload)
   return lines
 end
 
-local function find_groups_close_line(lines)
+local function find_groups_block(lines)
   local groups_indent = nil
   for index, line in ipairs(lines) do
     if not groups_indent then
@@ -189,7 +189,7 @@ end
 
 function M.insert_empty_group(bufnr, winid)
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  local close_line, groups_indent = find_groups_close_line(lines)
+  local close_line, groups_indent = find_groups_block(lines)
   if not close_line then
     vim.notify("tablocal_buffer: could not find groups block", vim.log.levels.ERROR)
     return false
@@ -208,6 +208,41 @@ function M.insert_empty_group(bufnr, winid)
     vim.api.nvim_win_set_cursor(winid, { close_line + 1, #entry_indent })
   end
   return true
+end
+
+function M.delete_group_at_cursor(bufnr, winid)
+  if not winid or not vim.api.nvim_win_is_valid(winid) then
+    return false
+  end
+
+  local cursor_line = vim.api.nvim_win_get_cursor(winid)[1]
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local close_line, groups_indent = find_groups_block(lines)
+  if not close_line then
+    vim.notify("tablocal_buffer: could not find groups block", vim.log.levels.ERROR)
+    return false
+  end
+
+  local group_indent = groups_indent .. "  "
+  local group_start = nil
+  for index = 1, close_line - 1 do
+    local line = lines[index]
+    if line:match("^" .. group_indent .. "{%s*$") then
+      group_start = index
+    elseif group_start and line:match("^" .. group_indent .. "},%s*$") then
+      if cursor_line >= group_start and cursor_line <= index then
+        vim.api.nvim_buf_set_lines(bufnr, group_start - 1, index, false, {})
+        local next_line_count = vim.api.nvim_buf_line_count(bufnr)
+        local next_cursor_line = math.min(group_start, next_line_count)
+        vim.api.nvim_win_set_cursor(winid, { next_cursor_line, 0 })
+        return true
+      end
+      group_start = nil
+    end
+  end
+
+  vim.notify("tablocal_buffer: cursor is not inside a groups entry", vim.log.levels.WARN)
+  return false
 end
 
 local function overlap_size(group, buffers)
@@ -440,6 +475,10 @@ function M.open_editor()
   vim.keymap.set("n", "<C-j>", function()
     M.insert_empty_group(bufnr, winid)
   end, { buffer = bufnr, nowait = true, silent = true, desc = "tablocal_buffer:add_empty_group" })
+
+  vim.keymap.set("n", "<C-d>", function()
+    M.delete_group_at_cursor(bufnr, winid)
+  end, { buffer = bufnr, nowait = true, silent = true, desc = "tablocal_buffer:delete_group" })
 
   vim.api.nvim_create_autocmd("BufWinLeave", {
     buffer = bufnr,
