@@ -362,6 +362,27 @@ local function test_delete_current_buffer_from_tab_removes_buffer_without_closin
   eq(vim.api.nvim_get_current_buf(), second, "window should remain on a valid fallback buffer")
 end
 
+local function test_bufwipeout_syncs_after_autocmd()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  local first = new_named_buffer("COMMIT_EDITMSG")
+  local second = new_named_buffer("after-commit.lua")
+  vim.api.nvim_set_current_buf(first)
+
+  local deleted, err = pcall(vim.api.nvim_buf_delete, first, { force = true })
+  ok(deleted, "wiping the current buffer should not fail: " .. tostring(err))
+  vim.wait(1000, function()
+    return vim.api.nvim_get_current_buf() == second
+  end)
+
+  ok(not vim.api.nvim_buf_is_valid(first), "wiped buffer should be invalid")
+  eq(vim.api.nvim_tabpage_get_var(0, "tablocal_buffers"), { second }, "wiped buffer should be removed from tab state")
+  eq(vim.api.nvim_get_current_buf(), second, "window should settle on the remaining tab buffer")
+end
+
 local function test_editor_apply_layout_after_close()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -712,6 +733,7 @@ local tests = {
   test_move_to_new_tab_replaces_last_source_window,
   test_detach_current_buffer_keeps_tab_open_and_unassigns_buffer,
   test_delete_current_buffer_from_tab_removes_buffer_without_closing_tab,
+  test_bufwipeout_syncs_after_autocmd,
   test_editor_apply_layout_after_close,
   test_apply_layout_sorts_before_deleting_removed_buffers,
   test_apply_layout_reorders_tabs_to_match_group_order,

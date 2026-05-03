@@ -97,6 +97,14 @@ local function configure_commandline_abbrev()
   vim.cmd([[cnoreabbrev <expr> bprevious getcmdtype() ==# ':' && getcmdline() ==# 'bprevious' ? 'TabLocalBprevious' : 'bprevious']])
 end
 
+local function schedule_sync_all_tabs()
+  vim.schedule(function()
+    for _, tabpage in ipairs(vim.api.nvim_list_tabpages()) do
+      model.sync_tab_windows(tabpage)
+    end
+  end)
+end
+
 local function create_autocmds()
   vim.api.nvim_clear_autocmds({ group = augroup })
   vim.api.nvim_create_autocmd("BufWinEnter", {
@@ -111,9 +119,7 @@ local function create_autocmds()
     group = augroup,
     callback = function(args)
       model.remove_buffer_from_all_tabs(args.buf)
-      for _, tabpage in ipairs(vim.api.nvim_list_tabpages()) do
-        model.sync_tab_windows(tabpage)
-      end
+      schedule_sync_all_tabs()
     end,
   })
   vim.api.nvim_create_autocmd("TabEnter", {
