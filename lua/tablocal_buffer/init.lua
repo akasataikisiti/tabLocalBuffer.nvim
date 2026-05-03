@@ -29,37 +29,43 @@ local function create_commands()
     return
   end
 
-  vim.api.nvim_create_user_command("TabLocalBnext", function()
-    M.bnext_tablocal()
-  end, {})
-  vim.api.nvim_create_user_command("TabLocalBprevious", function()
-    M.bprevious_tablocal()
-  end, {})
-  vim.api.nvim_create_user_command("TabLocalBufferlineSort", function()
-    M.sort_bufferline()
-  end, {})
-  vim.api.nvim_create_user_command("TabLocalMoveToNewTab", function()
-    M.move_current_window_to_new_tab()
-  end, {})
-  vim.api.nvim_create_user_command("TabLocalEditTabBuffers", function()
-    M.open_editor()
-  end, {})
-  vim.api.nvim_create_user_command("TabLocalDetachBuffer", function()
-    M.detach_current_buffer_from_tab()
-  end, {})
-  vim.api.nvim_create_user_command("TabLocalWriteDetachBuffer", function()
-    M.write_and_detach_current_buffer_from_tab()
-  end, {})
-  vim.api.nvim_create_user_command("TabLocalDeleteBuffer", function()
-    M.delete_current_buffer_from_tab()
-  end, {})
-  vim.api.nvim_create_user_command("TabLocalDebugState", function()
-    local state = {}
-    for index, tabpage in ipairs(vim.api.nvim_list_tabpages()) do
-      state[index] = model.get_tab_buffers(tabpage)
-    end
-    vim.notify(vim.inspect(state))
-  end, {})
+  local specs = {
+    TabLocalBnext = function()
+      M.bnext_tablocal()
+    end,
+    TabLocalBprevious = function()
+      M.bprevious_tablocal()
+    end,
+    TabLocalBufferlineSort = function()
+      M.sort_bufferline()
+    end,
+    TabLocalMoveToNewTab = function()
+      M.move_current_window_to_new_tab()
+    end,
+    TabLocalEditTabBuffers = function()
+      M.open_editor()
+    end,
+    TabLocalDetachBuffer = function()
+      M.detach_current_buffer_from_tab()
+    end,
+    TabLocalWriteDetachBuffer = function()
+      M.write_and_detach_current_buffer_from_tab()
+    end,
+    TabLocalDeleteBuffer = function()
+      M.delete_current_buffer_from_tab()
+    end,
+    TabLocalDebugState = function()
+      local state = {}
+      for index, tabpage in ipairs(vim.api.nvim_list_tabpages()) do
+        state[index] = model.get_tab_buffers(tabpage)
+      end
+      vim.notify(vim.inspect(state))
+    end,
+  }
+
+  for name, callback in pairs(specs) do
+    vim.api.nvim_create_user_command(name, callback, {})
+  end
 end
 
 local function clear_keymaps()
