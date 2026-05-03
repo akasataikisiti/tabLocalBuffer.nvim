@@ -1,6 +1,7 @@
 local bufferline = require("tablocal_buffer.bufferline")
 local config = require("tablocal_buffer.config")
 local model = require("tablocal_buffer.model")
+local ops = require("tablocal_buffer.ops")
 
 local M = {}
 
@@ -43,15 +44,6 @@ local function overlap_size(group, buffers)
   return score
 end
 
-local function is_buffer_visible(bufnr)
-  for _, winid in ipairs(vim.api.nvim_list_wins()) do
-    if vim.api.nvim_win_get_buf(winid) == bufnr then
-      return true
-    end
-  end
-  return false
-end
-
 local function ensure_tabs(count)
   local created_scratch_buffers = {}
 
@@ -64,17 +56,7 @@ local function ensure_tabs(count)
 end
 
 local function maybe_delete_created_scratch_buffer(bufnr)
-  if not vim.api.nvim_buf_is_valid(bufnr) then
-    return
-  end
-  if vim.api.nvim_buf_get_name(bufnr) ~= "" then
-    return
-  end
-  if vim.bo[bufnr].buftype ~= "" or vim.bo[bufnr].modified or is_buffer_visible(bufnr) then
-    return
-  end
-
-  pcall(vim.api.nvim_buf_delete, bufnr, { force = false })
+  ops.delete_unmodified_unnamed_buffer(bufnr)
 end
 
 local function tabs_by_best_overlap(groups)
@@ -158,16 +140,7 @@ local function close_extra_tabs(tabpages, keep_count)
 end
 
 local function maybe_delete_buffer(bufnr)
-  if not vim.api.nvim_buf_is_valid(bufnr) then
-    return
-  end
-  if vim.api.nvim_buf_get_name(bufnr) == "" then
-    return
-  end
-  if vim.bo[bufnr].modified or is_buffer_visible(bufnr) then
-    return
-  end
-  pcall(vim.api.nvim_buf_delete, bufnr, { force = false })
+  ops.delete_unmodified_named_buffer(bufnr)
 end
 
 function M.apply(layout)

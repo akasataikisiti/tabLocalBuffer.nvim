@@ -3,6 +3,7 @@ local editor_text = require("tablocal_buffer.ui.editor_text")
 local labels = require("tablocal_buffer.labels")
 local layout = require("tablocal_buffer.layout")
 local model = require("tablocal_buffer.model")
+local ops = require("tablocal_buffer.ops")
 
 local M = {}
 
@@ -113,12 +114,8 @@ end
 M.apply_layout = layout.apply
 
 local function close_editor(bufnr, winid)
-  if vim.api.nvim_win_is_valid(winid) then
-    vim.api.nvim_win_close(winid, true)
-  end
-  if vim.api.nvim_buf_is_valid(bufnr) then
-    pcall(vim.api.nvim_buf_delete, bufnr, { force = true })
-  end
+  ops.close_win(winid, true)
+  ops.delete_buffer(bufnr, { force = true })
 end
 
 function M.open_editor()

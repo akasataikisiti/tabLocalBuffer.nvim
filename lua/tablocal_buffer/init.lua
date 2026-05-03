@@ -3,6 +3,7 @@ local model = require("tablocal_buffer.model")
 local navigation = require("tablocal_buffer.navigation")
 local bufferline = require("tablocal_buffer.bufferline")
 local editor = require("tablocal_buffer.ui.editor")
+local ops = require("tablocal_buffer.ops")
 
 local M = {}
 
@@ -187,11 +188,8 @@ function M.move_current_window_to_new_tab()
   vim.api.nvim_set_current_tabpage(new_tab)
   model.sync_tab_windows(new_tab)
 
-  if vim.api.nvim_buf_is_valid(scratch) and scratch ~= bufnr then
-    local scratch_name = vim.api.nvim_buf_get_name(scratch)
-    if scratch_name == "" and not vim.bo[scratch].modified then
-      pcall(vim.api.nvim_buf_delete, scratch, { force = false })
-    end
+  if scratch ~= bufnr then
+    ops.delete_unmodified_unnamed_buffer(scratch)
   end
 end
 
@@ -212,7 +210,7 @@ function M.delete_current_buffer_from_tab()
   local bufnr = vim.api.nvim_get_current_buf()
   local detached = model.detach_buffer_from_tab(vim.api.nvim_get_current_tabpage(), bufnr)
   if detached and vim.api.nvim_buf_is_valid(bufnr) then
-    pcall(vim.api.nvim_buf_delete, bufnr, { force = false })
+    ops.delete_buffer(bufnr, { force = false })
   end
   return detached
 end
