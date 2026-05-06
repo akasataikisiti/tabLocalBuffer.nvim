@@ -1,4 +1,5 @@
 local config = require("tablocal_buffer.config")
+local ops = require("tablocal_buffer.ops")
 
 local M = {}
 
@@ -46,13 +47,7 @@ local function is_unnamed_normal_buffer(ctx)
   return ctx.bufname == "" and ctx.buftype == ""
 end
 
-function M.is_cycle_candidate(bufnr)
-  if not vim.api.nvim_buf_is_valid(bufnr) then
-    return false
-  end
-
-  local opts = config.get().cycle
-  local ctx = M.get_cycle_context(bufnr)
+local function passes_base_candidate_filters(ctx, opts)
   local exclude = opts.exclude
 
   if exclude.unnamed and is_unnamed_normal_buffer(ctx) then
@@ -68,6 +63,12 @@ function M.is_cycle_candidate(bufnr)
       return false
     end
   end
+
+  return true
+end
+
+local function passes_cycle_exclude_filters(ctx, opts)
+  local exclude = opts.exclude
 
   if vim.list_contains(exclude.filetypes, ctx.filetype) then
     return false
@@ -92,6 +93,16 @@ function M.is_cycle_candidate(bufnr)
   return true
 end
 
+function M.is_cycle_candidate(bufnr)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return false
+  end
+
+  local opts = config.get().cycle
+  local ctx = M.get_cycle_context(bufnr)
+  return passes_base_candidate_filters(ctx, opts) and passes_cycle_exclude_filters(ctx, opts)
+end
+
 function M.is_editor_candidate(bufnr)
   if not vim.api.nvim_buf_is_valid(bufnr) then
     return false
@@ -99,23 +110,7 @@ function M.is_editor_candidate(bufnr)
 
   local opts = config.get().cycle
   local ctx = M.get_cycle_context(bufnr)
-
-  local exclude = opts.exclude
-  if exclude.unnamed and is_unnamed_normal_buffer(ctx) then
-    return false
-  end
-
-  if opts.require_buflisted and not ctx.buflisted and not is_unnamed_normal_buffer(ctx) then
-    return false
-  end
-
-  if ctx.buftype ~= "" then
-    if not (opts.include_terminal and ctx.buftype == "terminal") then
-      return false
-    end
-  end
-
-  return true
+  return passes_base_candidate_filters(ctx, opts)
 end
 
 function M.normalize_tab_buffers(tabpage)
@@ -226,27 +221,19 @@ function M.detach_buffer_from_tab(tabpage, bufnr)
   local fallback = M.find_first_valid_buffer(tabpage) or find_window_fallback_buffer(tabpage, bufnr)
   if fallback then
     for _, winid in ipairs(target_windows) do
-      if vim.api.nvim_win_is_valid(winid) then
-        vim.api.nvim_win_set_buf(winid, fallback)
-      end
+      ops.set_win_buf(winid, fallback)
     end
   elseif #target_windows == #tab_windows and #target_windows > 0 then
     local placeholder = vim.api.nvim_create_buf(false, false)
     local keep_win = target_windows[1]
-    if vim.api.nvim_win_is_valid(keep_win) then
-      vim.api.nvim_win_set_buf(keep_win, placeholder)
-    end
+    ops.set_win_buf(keep_win, placeholder)
     for index = 2, #target_windows do
       local winid = target_windows[index]
-      if vim.api.nvim_win_is_valid(winid) then
-        pcall(vim.api.nvim_win_close, winid, false)
-      end
+      ops.close_win(winid, false)
     end
   elseif #target_windows < #tab_windows then
     for _, winid in ipairs(target_windows) do
-      if vim.api.nvim_win_is_valid(winid) then
-        pcall(vim.api.nvim_win_close, winid, false)
-      end
+      ops.close_win(winid, false)
     end
   end
 
@@ -283,7 +270,7 @@ function M.sync_tab_windows(tabpage)
       if list_contains(buffers, bufnr) then
         has_managed_window = true
       else
-        vim.api.nvim_win_set_buf(winid, first)
+        ops.set_win_buf(winid, first)
         has_managed_window = true
       end
     end
@@ -295,7 +282,7 @@ function M.sync_tab_windows(tabpage)
 
   local current = vim.api.nvim_tabpage_get_win(tabpage)
   if current and vim.api.nvim_win_is_valid(current) then
-    vim.api.nvim_win_set_buf(current, first)
+    ops.set_win_buf(current, first)
   end
 end
 

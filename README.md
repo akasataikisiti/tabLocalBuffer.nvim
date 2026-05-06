@@ -1,22 +1,22 @@
 # tablocal_buffer.nvim
 
-タブごとに巡回対象バッファ集合を持ち、`bnext` / `bprevious` 相当の移動をタブローカル化する Neovim プラグインです。
+A Neovim plugin that keeps a per-tab set of buffers and makes `bnext` / `bprevious`-style navigation tab-local.
 
 - Repository: `akasataikisiti/tabLocalBuffer.nvim`
 - Author: `akasataikisiti`
 - License: `MIT`
 
-## 特徴
+## Features
 
-- `require("tablocal_buffer").setting(opts)` を正式な設定入口として提供
-- 既定キーマップは登録せず、`keymaps` で指定されたものだけ登録
-- `BufWinEnter` / `BufWipeout` ベースで各タブの `tablocal_buffers` を維持
-- `:TabLocalMoveToNewTab` で現在バッファを新規タブへ移送
-- `:TabLocalDetachBuffer` / `:TabLocalWriteDetachBuffer` / `:TabLocalDeleteBuffer` で現在バッファだけを安全に外せる
-- フローティング編集 UI でタブごとのバッファ割当を編集
-- `bufferline.nvim` があればグローバル順序計算とソートに利用可能
+- Provides `require("tablocal_buffer").setting(opts)` as the official configuration entry point
+- Does not register default keymaps; only keymaps specified in `keymaps` are registered
+- Maintains each tab's `tablocal_buffers` with `BufWinEnter` / `BufWipeout`
+- Moves the current buffer to a new tab with `:TabLocalMoveToNewTab`
+- Safely detaches only the current buffer with `:TabLocalDetachBuffer` / `:TabLocalWriteDetachBuffer` / `:TabLocalDeleteBuffer`
+- Provides a floating editor UI for editing per-tab buffer assignments
+- Can use `bufferline.nvim` for global order calculation and sorting when available
 
-## インストール
+## Installation
 
 `lazy.nvim`:
 
@@ -29,7 +29,7 @@
 }
 ```
 
-## 設定例
+## Configuration Example
 
 ```lua
 require("tablocal_buffer").setting({
@@ -64,72 +64,72 @@ require("tablocal_buffer").setting({
 })
 ```
 
-`setup(opts)` は `setting(opts)` の alias です。
+`setup(opts)` is an alias of `setting(opts)`.
 
-`[No Name]` の通常バッファは既定で巡回対象に含まれます。除外したい場合は
-`cycle.exclude.unnamed = true` を指定してください。
+Normal `[No Name]` buffers are included in the cycle by default. To exclude
+them, set `cycle.exclude.unnamed = true`.
 
-## 設定項目
+## Options
 
 - `keymaps`
-  正規化済みコマンドを呼ぶキーマップ定義です。指定した項目だけ登録されます。デフォルトは `{}` で、何も登録しません。
+  Keymap definitions that call the normalized commands. Only specified entries are registered. The default is `{}`, which registers nothing.
 - `keymaps.bnext`
-  次のタブローカルバッファへ移動するノーマルモードマップです。デフォルトは未設定です。
+  Normal-mode mapping for moving to the next tab-local buffer. Unset by default.
 - `keymaps.bprevious`
-  前のタブローカルバッファへ移動するノーマルモードマップです。デフォルトは未設定です。
+  Normal-mode mapping for moving to the previous tab-local buffer. Unset by default.
 - `keymaps.move_to_new_tab`
-  現在バッファを新規タブへ移すノーマルモードマップです。デフォルトは未設定です。
+  Normal-mode mapping for moving the current buffer to a new tab. Unset by default.
 - `keymaps.open_editor`
-  編集 UI を開くノーマルモードマップです。デフォルトは未設定です。
+  Normal-mode mapping for opening the editor UI. Unset by default.
 - `commands.enabled`
-  ユーザコマンドを定義するかどうかです。デフォルトは `true` です。
+  Whether to define user commands. The default is `true`.
 - `replace_builtin_bnext`
-  コマンドラインで入力した `:bnext` / `:bprevious` を `:TabLocalBnext` / `:TabLocalBprevious` に置き換えるかどうかです。デフォルトは `false` です。
+  Whether to replace command-line `:bnext` / `:bprevious` with `:TabLocalBnext` / `:TabLocalBprevious`. The default is `false`.
 - `bufferline.enabled`
-  `bufferline.nvim` 連携を有効にするかどうかです。`true` のときだけ `sort_bufferline()` と編集 UI 適用時のソートが動作します。デフォルトは `true` です。
+  Whether to enable `bufferline.nvim` integration. `sort_bufferline()` and sorting after applying the editor UI run only when this is `true`. The default is `true`.
 - `bufferline.auto_sort_on_apply`
-  編集 UI の適用後に `bufferline.nvim` を自動ソートするかどうかです。デフォルトは `true` です。
+  Whether to automatically sort `bufferline.nvim` after applying the editor UI. The default is `true`.
 - `editor.width_ratio`
-  編集 UI の幅を `vim.o.columns` に対する比率で指定します。デフォルトは `0.6` です。
+  Width of the editor UI as a ratio of `vim.o.columns`. The default is `0.6`.
 - `editor.height_ratio`
-  編集 UI の高さを `vim.o.lines` に対する比率で指定します。デフォルトは `0.6` です。
+  Height of the editor UI as a ratio of `vim.o.lines`. The default is `0.6`.
 - `editor.border`
-  編集 UI のフローティングウィンドウの border 指定です。デフォルトは `"rounded"` です。
+  Border style for the editor UI floating window. The default is `"rounded"`.
 - `editor.keymaps.add_empty_group`
-  編集 UI 上で `groups` 末尾に空の group を追加するノーマルモードマップです。デフォルトは `"<C-j>"` です。空文字にすると登録しません。
+  Normal-mode mapping in the editor UI for appending an empty group to `groups`. The default is `"<C-j>"`. Set it to an empty string to disable the mapping.
 - `editor.keymaps.delete_group`
-  編集 UI 上でカーソル位置の group を削除するノーマルモードマップです。デフォルトは `"<C-d>"` です。空文字にすると登録しません。
+  Normal-mode mapping in the editor UI for deleting the group at the cursor. The default is `"<C-d>"`. Set it to an empty string to disable the mapping.
 - `cycle.include_terminal`
-  `buftype == "terminal"` を巡回対象に含めるかどうかです。デフォルトは `true` です。
+  Whether to include `buftype == "terminal"` in the cycle. The default is `true`.
 - `cycle.require_buflisted`
-  通常は `buflisted` のバッファだけを巡回対象にするかどうかです。デフォルトは `true` です。通常の `[No Name]` バッファはこの値にかかわらず既定で巡回対象に含めます。
+  Whether to usually include only `buflisted` buffers in the cycle. The default is `true`. Normal `[No Name]` buffers are included by default regardless of this value.
 - `cycle.exclude.unnamed`
-  通常の `[No Name]` バッファを巡回対象から除外するかどうかです。デフォルトは `false` です。
+  Whether to exclude normal `[No Name]` buffers from the cycle. The default is `false`.
 - `cycle.exclude.filetypes`
-  巡回対象から除外する `filetype` の一覧です。デフォルトは `{ "fugitive" }` です。
+  List of `filetype` values to exclude from the cycle. The default is `{ "fugitive" }`.
 - `cycle.exclude.buftypes`
-  巡回対象から除外する `buftype` の一覧です。デフォルトは `{}` です。
+  List of `buftype` values to exclude from the cycle. The default is `{}`.
 - `cycle.exclude.name_patterns`
-  バッファ名に対して Lua パターンで除外する条件です。デフォルトは `{ "^fugitive://" }` です。
+  Lua patterns matched against buffer names for exclusion. The default is `{ "^fugitive://" }`.
 - `cycle.exclude.predicates`
-  `ctx` を受け取る Lua 関数の一覧です。どれかが `true` を返すとそのバッファを除外します。デフォルトは `{}` です。
+  List of Lua functions that receive `ctx`. A buffer is excluded when any predicate returns `true`. The default is `{}`.
 
-`cycle.exclude.predicates` の `ctx` には次の値が入ります。
+`ctx` passed to `cycle.exclude.predicates` contains the following values.
 
 - `ctx.bufnr`
-  バッファ番号です。
+  Buffer number.
 - `ctx.buflisted`
-  `buflisted` の真偽値です。
+  Boolean value for `buflisted`.
 - `ctx.buftype`
-  `buftype` の文字列です。
+  `buftype` string.
 - `ctx.filetype`
-  `filetype` の文字列です。
+  `filetype` string.
 - `ctx.bufname`
-  `nvim_buf_get_name()` で取得したフルパス、または無名バッファでは空文字です。
+  Full path returned by `nvim_buf_get_name()`, or an empty string for unnamed buffers.
 - `ctx.modified`
-  バッファが変更済みかどうかです。
+  Whether the buffer is modified.
 
-## コマンド
+## Commands
 
 - `:TabLocalBnext`
 - `:TabLocalBprevious`
@@ -141,7 +141,7 @@ require("tablocal_buffer").setting({
 - `:TabLocalDeleteBuffer`
 - `:TabLocalDebugState`
 
-## 公開 API
+## Public API
 
 - `setting(opts)`
 - `setup(opts)`
@@ -157,20 +157,20 @@ require("tablocal_buffer").setting({
 - `sort_bufferline()`
 - `is_cycle_candidate(bufnr)`
 
-## 編集 UI
+## Editor UI
 
-`:TabLocalEditTabBuffers` は Lua テーブルを返す形式のフローティングバッファを開きます。`q` で閉じた場合は破棄され、通常に閉じた場合は `groups` と `unassigned` の内容が適用されます。編集 UI 上では、ノーマルモードの `<C-j>` で `groups` 末尾に空の group を追加できます。`groups` 内では `<C-d>` でカーソル位置の group を削除できます。これらは `editor.keymaps` で変更できます。
+`:TabLocalEditTabBuffers` opens a floating buffer in a format that returns a Lua table. Closing it with `q` discards changes. Closing it normally applies the contents of `groups` and `unassigned`. In the editor UI, normal-mode `<C-j>` appends an empty group to `groups`. Inside `groups`, `<C-d>` deletes the group at the cursor. These mappings can be changed with `editor.keymaps`.
 
-## 安全に現在バッファを外すコマンド
+## Safely Detaching The Current Buffer
 
-既存の `:q` / `:wq` / `:bd` の挙動は変更しません。代わりに、現在バッファだけをタブ所属から外す専用コマンドを使えます。
+The behavior of existing `:q` / `:wq` / `:bd` commands is not changed. Instead, dedicated commands are available for detaching only the current buffer from its tab assignment.
 
 - `:TabLocalDetachBuffer`
-  現在バッファを現在タブの所属一覧から外し、未所属状態にします。
+  Removes the current buffer from the current tab's assignment list and leaves it unassigned.
 - `:TabLocalWriteDetachBuffer`
-  `:write` 後に現在バッファを現在タブの所属一覧から外します。
+  Runs `:write`, then removes the current buffer from the current tab's assignment list.
 - `:TabLocalDeleteBuffer`
-  現在バッファを現在タブの所属一覧から外し、その後バッファ自体を削除します。
+  Removes the current buffer from the current tab's assignment list, then deletes the buffer itself.
 
 ```lua
 return {
@@ -184,13 +184,17 @@ return {
 }
 ```
 
-## テスト
+## Tests
 
-以下で headless テストを実行できます。
+Run the headless test suite with:
 
 ```bash
 nvim --headless -u NONE -i NONE -c "set rtp+=." -l tests/run.lua
 ```
+
+## Help
+
+See `:help tablocal_buffer` after installing the plugin.
 
 ## License
 
