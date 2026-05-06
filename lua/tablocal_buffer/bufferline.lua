@@ -55,8 +55,8 @@ function M.sort_bufferline()
 
   sanitize_bufferline_state()
 
+  local order = M.get_global_buffer_order()
   local sorted_ok = pcall(bufferline.sort_by, function(buffer_a, buffer_b)
-    local order = M.get_global_buffer_order()
     local a = order[buffer_a.id] or math.huge
     local b = order[buffer_b.id] or math.huge
     if a == b then
