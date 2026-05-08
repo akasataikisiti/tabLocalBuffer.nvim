@@ -2,6 +2,8 @@
 
 タブごとに巡回対象バッファ集合を持ち、`bnext` / `bprevious` 相当の移動をタブローカル化する Neovim プラグインです。
 
+![Demo](assets/output.gif)
+
 - Repository: `akasataikisiti/tabLocalBuffer.nvim`
 - Author: `akasataikisiti`
 - License: `MIT`

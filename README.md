@@ -2,6 +2,8 @@
 
 A Neovim plugin that keeps a per-tab set of buffers and makes `bnext` / `bprevious`-style navigation tab-local.
 
+![Demo](assets/output.gif)
+
 - Repository: `akasataikisiti/tabLocalBuffer.nvim`
 - Author: `akasataikisiti`
 - License: `MIT`
