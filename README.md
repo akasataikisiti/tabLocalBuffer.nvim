@@ -1,22 +1,25 @@
-# tablocal_buffer.nvim
+# tabLocalBuffer.nvim
 
-A Neovim plugin that keeps a per-tab set of buffers and makes `bnext` / `bprevious`-style navigation tab-local.
-
-![Demo](assets/output.gif)
+tabLocalBuffer.nvim keeps a per-tab set of buffers so that `bnext` / `bprevious`-style navigation cycles only within that tab.
 
 - Repository: `akasataikisiti/tabLocalBuffer.nvim`
-- Author: `akasataikisiti`
-- License: `MIT`
+- License: MIT
+
+![Demo](assets/output.gif)
 
 ## Features
 
 - Provides `require("tablocal_buffer").setting(opts)` as the official configuration entry point
 - Does not register default keymaps; only keymaps specified in `keymaps` are registered
-- Maintains each tab's `tablocal_buffers` with `BufWinEnter` / `BufWipeout`
+- Maintains each tab's buffer list with `BufWinEnter` / `BufWipeout`
 - Moves the current buffer to a new tab with `:TabLocalMoveToNewTab`
 - Safely detaches only the current buffer with `:TabLocalDetachBuffer` / `:TabLocalWriteDetachBuffer` / `:TabLocalDeleteBuffer`
 - Provides a floating editor UI for editing per-tab buffer assignments
 - Can use `bufferline.nvim` for global order calculation and sorting when available
+
+## Why?
+
+Neovim's `:bnext` / `:bprevious` navigate through a single global buffer list. When working across multiple tabs — each focused on a different context — you end up cycling through unrelated files. tabLocalBuffer.nvim gives each tab its own buffer list so navigation stays scoped to what's relevant.
 
 ## Installation
 
@@ -31,7 +34,7 @@ A Neovim plugin that keeps a per-tab set of buffers and makes `bnext` / `bprevio
 }
 ```
 
-## Configuration Example
+## Configuration
 
 ```lua
 require("tablocal_buffer").setting({
@@ -68,111 +71,30 @@ require("tablocal_buffer").setting({
 
 `setup(opts)` is an alias of `setting(opts)`.
 
-Normal `[No Name]` buffers are included in the cycle by default. To exclude
-them, set `cycle.exclude.unnamed = true`.
+Normal `[No Name]` buffers are included in the cycle by default. To exclude them, set `cycle.exclude.unnamed = true`.
 
-## Options
+### Options
 
-- `keymaps`
-  Keymap definitions that call the normalized commands. Only specified entries are registered. The default is `{}`, which registers nothing.
-- `keymaps.bnext`
-  Normal-mode mapping for moving to the next tab-local buffer. Unset by default.
-- `keymaps.bprevious`
-  Normal-mode mapping for moving to the previous tab-local buffer. Unset by default.
-- `keymaps.move_to_new_tab`
-  Normal-mode mapping for moving the current buffer to a new tab. Unset by default.
-- `keymaps.open_editor`
-  Normal-mode mapping for opening the editor UI. Unset by default.
-- `commands.enabled`
-  Whether to define user commands. The default is `true`.
-- `replace_builtin_bnext`
-  Whether to replace command-line `:bnext` / `:bprevious` with `:TabLocalBnext` / `:TabLocalBprevious`. The default is `false`.
-- `bufferline.enabled`
-  Whether to enable `bufferline.nvim` integration. `sort_bufferline()` and sorting after applying the editor UI run only when this is `true`. The default is `true`.
-- `bufferline.auto_sort_on_apply`
-  Whether to automatically sort `bufferline.nvim` after applying the editor UI. The default is `true`.
-- `editor.width_ratio`
-  Width of the editor UI as a ratio of `vim.o.columns`. The default is `0.6`.
-- `editor.height_ratio`
-  Height of the editor UI as a ratio of `vim.o.lines`. The default is `0.6`.
-- `editor.border`
-  Border style for the editor UI floating window. The default is `"rounded"`.
-- `editor.keymaps.add_empty_group`
-  Normal-mode mapping in the editor UI for inserting an empty group after the group at the cursor. If the cursor is not inside any group, the empty group is appended at the end of `groups`. The default is `"<C-j>"`. Set it to an empty string to disable the mapping.
-- `editor.keymaps.delete_group`
-  Normal-mode mapping in the editor UI for deleting the group at the cursor. The default is `"<C-d>"`. Set it to an empty string to disable the mapping.
-- `cycle.include_terminal`
-  Whether to include `buftype == "terminal"` in the cycle. The default is `true`.
-- `cycle.require_buflisted`
-  Whether to usually include only `buflisted` buffers in the cycle. The default is `true`. Normal `[No Name]` buffers are included by default regardless of this value.
-- `cycle.exclude.unnamed`
-  Whether to exclude normal `[No Name]` buffers from the cycle. The default is `false`.
-- `cycle.exclude.filetypes`
-  List of `filetype` values to exclude from the cycle. The default is `{ "fugitive" }`.
-- `cycle.exclude.buftypes`
-  List of `buftype` values to exclude from the cycle. The default is `{}`.
-- `cycle.exclude.name_patterns`
-  Lua patterns matched against buffer names for exclusion. The default is `{ "^fugitive://" }`.
-- `cycle.exclude.predicates`
-  List of Lua functions that receive `ctx`. A buffer is excluded when any predicate returns `true`. The default is `{}`.
+- `commands.enabled` — Whether to define user commands. Default: `true`.
+- `replace_builtin_bnext` — Whether to replace `:bnext` / `:bprevious` with `:TabLocalBnext` / `:TabLocalBprevious`. Default: `false`.
+- `editor.width_ratio` — Width of the editor UI as a ratio of `vim.o.columns`. Default: `0.6`.
+- `editor.height_ratio` — Height of the editor UI as a ratio of `vim.o.lines`. Default: `0.6`.
+- `editor.border` — Border style for the editor UI floating window. Default: `"rounded"`.
+- `cycle.include_terminal` — Whether to include `buftype == "terminal"` in the cycle. Default: `true`.
+- `cycle.require_buflisted` — Whether to include only `buflisted` buffers. Default: `true`.
+- `cycle.exclude.unnamed` — Whether to exclude `[No Name]` buffers. Default: `false`.
+- `cycle.exclude.filetypes` — List of `filetype` values to exclude. Default: `{ "fugitive" }`.
+- `cycle.exclude.buftypes` — List of `buftype` values to exclude. Default: `{}`.
+- `cycle.exclude.name_patterns` — Lua patterns matched against buffer names for exclusion. Default: `{ "^fugitive://" }`.
+- `cycle.exclude.predicates` — List of `function(ctx)` predicates. A buffer is excluded when any returns `true`. Default: `{}`.
 
-`ctx` passed to `cycle.exclude.predicates` contains the following values.
+`ctx` fields: `bufnr`, `buflisted`, `buftype`, `filetype`, `bufname`, `modified`.
 
-- `ctx.bufnr`
-  Buffer number.
-- `ctx.buflisted`
-  Boolean value for `buflisted`.
-- `ctx.buftype`
-  `buftype` string.
-- `ctx.filetype`
-  `filetype` string.
-- `ctx.bufname`
-  Full path returned by `nvim_buf_get_name()`, or an empty string for unnamed buffers.
-- `ctx.modified`
-  Whether the buffer is modified.
+## Usage
 
-## Commands
+### Editor UI
 
-- `:TabLocalBnext`
-- `:TabLocalBprevious`
-- `:TabLocalEditTabBuffers`
-- `:TabLocalBufferlineSort`
-- `:TabLocalMoveToNewTab`
-- `:TabLocalDetachBuffer`
-- `:TabLocalWriteDetachBuffer`
-- `:TabLocalDeleteBuffer`
-- `:TabLocalDebugState`
-
-## Public API
-
-- `setting(opts)`
-- `setup(opts)`
-- `bnext_tablocal()`
-- `bprevious_tablocal()`
-- `move_current_window_to_new_tab()`
-- `detach_current_buffer_from_tab()`
-- `write_and_detach_current_buffer_from_tab()`
-- `delete_current_buffer_from_tab()`
-- `open_editor()`
-- `get_buf_tabnr(bufnr)`
-- `get_global_buffer_order()`
-- `sort_bufferline()`
-- `is_cycle_candidate(bufnr)`
-
-## Editor UI
-
-`:TabLocalEditTabBuffers` opens a floating buffer in a format that returns a Lua table. Closing it with `q` discards changes. Closing it normally applies the contents of `groups` and `unassigned`. In the editor UI, normal-mode `<C-j>` appends an empty group to `groups`. Inside `groups`, `<C-d>` deletes the group at the cursor. These mappings can be changed with `editor.keymaps`.
-
-## Safely Detaching The Current Buffer
-
-The behavior of existing `:q` / `:wq` / `:bd` commands is not changed. Instead, dedicated commands are available for detaching only the current buffer from its tab assignment.
-
-- `:TabLocalDetachBuffer`
-  Removes the current buffer from the current tab's assignment list and leaves it unassigned.
-- `:TabLocalWriteDetachBuffer`
-  Runs `:write`, then removes the current buffer from the current tab's assignment list.
-- `:TabLocalDeleteBuffer`
-  Removes the current buffer from the current tab's assignment list, then deletes the buffer itself.
+`:TabLocalEditTabBuffers` opens a floating buffer in a Lua table format. Closing with `q` discards changes; closing normally applies `groups` and `unassigned`.
 
 ```lua
 return {
@@ -186,17 +108,45 @@ return {
 }
 ```
 
-## Tests
+### Detaching Buffers
 
-Run the headless test suite with:
+The behavior of `:q` / `:wq` / `:bd` is unchanged. Use these commands to detach only the current buffer from its tab assignment:
 
-```bash
-nvim --headless -u NONE -i NONE -c "set rtp+=." -l tests/run.lua
-```
+- `:TabLocalDetachBuffer` — Remove from the current tab's list, leave unassigned.
+- `:TabLocalWriteDetachBuffer` — Run `:write`, then remove from the current tab's list.
+- `:TabLocalDeleteBuffer` — Remove from the current tab's list, then delete the buffer.
 
-## Help
+## Commands
 
-See `:help tablocal_buffer` after installing the plugin.
+- `:TabLocalBnext`
+- `:TabLocalBprevious`
+- `:TabLocalEditTabBuffers`
+- `:TabLocalBufferlineSort`
+- `:TabLocalMoveToNewTab`
+- `:TabLocalDetachBuffer`
+- `:TabLocalWriteDetachBuffer`
+- `:TabLocalDeleteBuffer`
+- `:TabLocalDebugState`
+
+## Keymaps
+
+No keymaps are registered by default. Specify them via the `keymaps` option.
+
+- `keymaps.bnext` — Next tab-local buffer.
+- `keymaps.bprevious` — Previous tab-local buffer.
+- `keymaps.move_to_new_tab` — Move current buffer to a new tab.
+- `keymaps.open_editor` — Open the editor UI.
+- `editor.keymaps.add_empty_group` — Insert an empty group after the cursor's group in the editor UI. Default: `"<C-j>"`. Set to `""` to disable.
+- `editor.keymaps.delete_group` — Delete the group at the cursor in the editor UI. Default: `"<C-d>"`. Set to `""` to disable.
+
+## Bufferline Integration
+
+When `bufferline.nvim` is installed, tabLocalBuffer.nvim can use its global buffer order for sorting.
+
+- `bufferline.enabled` — Enable `bufferline.nvim` integration. Default: `true`.
+- `bufferline.auto_sort_on_apply` — Automatically sort after applying the editor UI. Default: `true`.
+
+Use `:TabLocalBufferlineSort` to trigger sorting manually.
 
 ## License
 
