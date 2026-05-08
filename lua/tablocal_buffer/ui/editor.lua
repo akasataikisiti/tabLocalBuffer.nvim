@@ -68,10 +68,34 @@ function M.insert_empty_group(bufnr, winid)
     entry_indent,
     group_indent .. "},",
   }
-  vim.api.nvim_buf_set_lines(bufnr, close_line - 1, close_line - 1, false, inserted)
+
+  -- Default: insert before the closing `},` of the groups block
+  local insert_at = close_line - 1  -- 0-based: inserts after 1-based line (close_line - 1)
+  local cursor_line_after = close_line + 1
 
   if winid and vim.api.nvim_win_is_valid(winid) then
-    vim.api.nvim_win_set_cursor(winid, { close_line + 1, #entry_indent })
+    local cursor_line = vim.api.nvim_win_get_cursor(winid)[1]
+    local group_start = nil
+    for index = 1, close_line - 1 do
+      local line = lines[index]
+      if line:match("^" .. group_indent .. "{%s*$") then
+        group_start = index
+      elseif group_start and line:match("^" .. group_indent .. "},%s*$") then
+        if cursor_line >= group_start and cursor_line <= index then
+          -- Insert after this group's closing `},` (1-based index)
+          insert_at = index
+          cursor_line_after = index + 2
+          break
+        end
+        group_start = nil
+      end
+    end
+  end
+
+  vim.api.nvim_buf_set_lines(bufnr, insert_at, insert_at, false, inserted)
+
+  if winid and vim.api.nvim_win_is_valid(winid) then
+    vim.api.nvim_win_set_cursor(winid, { cursor_line_after, #entry_indent })
   end
   return true
 end

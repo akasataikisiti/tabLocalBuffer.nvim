@@ -137,6 +137,54 @@ local function test_editor_delete_group_at_cursor()
   vim.api.nvim_win_close(winid, true)
 end
 
+local function test_editor_insert_empty_group_at_cursor()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  local editor = require("tablocal_buffer.ui.editor")
+  local bufnr, winid = editor.open_editor()
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+    "-- Edit tab-local buffers and write/quit to apply. Press q to close without saving. Duplicate basenames keep the shown :<bufnr> suffix.",
+    "return {",
+    "  groups = {",
+    "    {",
+    '      "a.txt",',
+    "    },",
+    "    {",
+    '      "b.txt",',
+    "    },",
+    "  },",
+    "",
+    "  -- Unassigned buffers (not in any tab). Move labels above or leave here to keep unassigned.",
+    "  unassigned = {",
+    "    -- (none)",
+    "  },",
+    "}",
+  })
+
+  vim.api.nvim_win_set_cursor(winid, { 5, 0 })
+  ok(editor.insert_empty_group(bufnr, winid), "editor should insert an empty group after the group at cursor")
+
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  eq({
+    lines[7],
+    lines[8],
+    lines[9],
+    lines[10],
+  }, {
+    "    {",
+    "      ",
+    "    },",
+    "    {",
+  }, "empty group should be inserted after the group containing the cursor")
+  eq(vim.api.nvim_win_get_cursor(winid), { 8, 5 }, "cursor should move inside the new empty group")
+
+  vim.b[bufnr].tablocal_editor_cancelled = true
+  vim.api.nvim_win_close(winid, true)
+end
+
 local function test_editor_keymaps_are_configurable()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -200,6 +248,7 @@ return {
   test_editor_parser,
   test_editor_render_text,
   test_editor_insert_empty_group,
+  test_editor_insert_empty_group_at_cursor,
   test_editor_delete_group_at_cursor,
   test_editor_keymaps_are_configurable,
   test_editor_shows_unnamed_buffers_excluded_from_cycle,
