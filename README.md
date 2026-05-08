@@ -96,7 +96,7 @@ them, set `cycle.exclude.unnamed = true`.
 - `editor.border`
   Border style for the editor UI floating window. The default is `"rounded"`.
 - `editor.keymaps.add_empty_group`
-  Normal-mode mapping in the editor UI for appending an empty group to `groups`. The default is `"<C-j>"`. Set it to an empty string to disable the mapping.
+  Normal-mode mapping in the editor UI for inserting an empty group after the group at the cursor. If the cursor is not inside any group, the empty group is appended at the end of `groups`. The default is `"<C-j>"`. Set it to an empty string to disable the mapping.
 - `editor.keymaps.delete_group`
   Normal-mode mapping in the editor UI for deleting the group at the cursor. The default is `"<C-d>"`. Set it to an empty string to disable the mapping.
 - `cycle.include_terminal`

@@ -134,9 +134,10 @@ OPTIONS                                              *tablocal_buffer-options*
   Border style for the editor UI floating window. The default is `"rounded"`.
 
 `editor.keymaps.add_empty_group` ~
-  Normal-mode mapping in the editor UI for appending an empty group to
-  `groups`. The default is `"<C-j>"`. Set it to an empty string to disable the
-  mapping.
+  Normal-mode mapping in the editor UI for inserting an empty group after the
+  group at the cursor. If the cursor is not inside any group, the empty group
+  is appended at the end of `groups`. The default is `"<C-j>"`. Set it to an
+  empty string to disable the mapping.
 
 `editor.keymaps.delete_group` ~
   Normal-mode mapping in the editor UI for deleting the group at the cursor.
@@ -308,7 +309,8 @@ buffer and applies the layout when the content is valid.
 
 Default editor UI mappings:
 
-- CTRL-J appends an empty group to `groups`.
+- CTRL-J inserts an empty group after the group at the cursor. If the cursor
+  is not inside any group, the empty group is appended at the end of `groups`.
 - CTRL-D deletes the group at the cursor when the cursor is inside `groups`.
 
 Change these mappings with `editor.keymaps.add_empty_group` and

@@ -96,7 +96,7 @@ require("tablocal_buffer").setting({
 - `editor.border`
   編集 UI のフローティングウィンドウの border 指定です。デフォルトは `"rounded"` です。
 - `editor.keymaps.add_empty_group`
-  編集 UI 上で `groups` 末尾に空の group を追加するノーマルモードマップです。デフォルトは `"<C-j>"` です。空文字にすると登録しません。
+  編集 UI 上でカーソル位置の group の直後に空の group を挿入するノーマルモードマップです。カーソルがどの group にも属さない場合は `groups` の末尾に追加します。デフォルトは `"<C-j>"` です。空文字にすると登録しません。
 - `editor.keymaps.delete_group`
   編集 UI 上でカーソル位置の group を削除するノーマルモードマップです。デフォルトは `"<C-d>"` です。空文字にすると登録しません。
 - `cycle.include_terminal`
