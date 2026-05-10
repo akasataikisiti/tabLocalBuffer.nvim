@@ -51,6 +51,7 @@ require("tablocal_buffer").setting({
   },
   editor = {
     keymaps = {
+      save_and_close = "s",
       add_empty_group = "<C-j>",
       delete_group = "<C-d>",
     },
@@ -94,7 +95,7 @@ require("tablocal_buffer").setting({
 
 ### 編集 UI
 
-`:TabLocalEditTabBuffers` は Lua テーブル形式のフローティングバッファを開きます。`q` で閉じると破棄され、通常に閉じると `groups` と `unassigned` の内容が適用されます。
+`:TabLocalEditTabBuffers` は Lua テーブル形式のフローティングバッファを開きます。`q` で閉じると破棄され、`s` または通常に閉じると `groups` と `unassigned` の内容が適用されます。
 
 ```lua
 return {
@@ -136,6 +137,7 @@ return {
 - `keymaps.bprevious` — 前のタブローカルバッファへ移動。
 - `keymaps.move_to_new_tab` — 現在バッファを新規タブへ移動。
 - `keymaps.open_editor` — 編集 UI を開く。
+- `editor.keymaps.save_and_close` — 編集 UI の内容を適用して閉じる。デフォルト: `"s"`。空文字で無効化。`q` は保存せず閉じる用途として予約。
 - `editor.keymaps.add_empty_group` — 編集 UI 上でカーソル位置の group の直後に空の group を挿入。デフォルト: `"<C-j>"`。空文字で無効化。
 - `editor.keymaps.delete_group` — 編集 UI 上でカーソル位置の group を削除。デフォルト: `"<C-d>"`。空文字で無効化。
 

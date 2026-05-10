@@ -51,6 +51,7 @@ require("tablocal_buffer").setting({
   },
   editor = {
     keymaps = {
+      save_and_close = "s",
       add_empty_group = "<C-j>",
       delete_group = "<C-d>",
     },
@@ -94,7 +95,7 @@ Normal `[No Name]` buffers are included in the cycle by default. To exclude them
 
 ### Editor UI
 
-`:TabLocalEditTabBuffers` opens a floating buffer in a Lua table format. Closing with `q` discards changes; closing normally applies `groups` and `unassigned`.
+`:TabLocalEditTabBuffers` opens a floating buffer in a Lua table format. Closing with `q` discards changes; pressing `s` or closing normally applies `groups` and `unassigned`.
 
 ```lua
 return {
@@ -136,6 +137,7 @@ No keymaps are registered by default. Specify them via the `keymaps` option.
 - `keymaps.bprevious` — Previous tab-local buffer.
 - `keymaps.move_to_new_tab` — Move current buffer to a new tab.
 - `keymaps.open_editor` — Open the editor UI.
+- `editor.keymaps.save_and_close` — Apply the editor UI contents and close it. Default: `"s"`. Set to `""` to disable. `q` is reserved for closing without saving.
 - `editor.keymaps.add_empty_group` — Insert an empty group after the cursor's group in the editor UI. Default: `"<C-j>"`. Set to `""` to disable.
 - `editor.keymaps.delete_group` — Delete the group at the cursor in the editor UI. Default: `"<C-d>"`. Set to `""` to disable.
 

@@ -133,6 +133,12 @@ OPTIONS                                              *tablocal_buffer-options*
 `editor.border` ~
   Border style for the editor UI floating window. The default is `"rounded"`.
 
+`editor.keymaps.save_and_close` ~
+  Normal-mode mapping in the editor UI for applying the edited `groups` and
+  `unassigned` contents, then closing the editor. The default is `"s"`. Set it
+  to an empty string to disable the mapping. `q` is reserved for closing
+  without saving.
+
 `editor.keymaps.add_empty_group` ~
   Normal-mode mapping in the editor UI for inserting an empty group after the
   group at the cursor. If the cursor is not inside any group, the empty group
@@ -304,17 +310,18 @@ returns a table: >
 `groups` represents tab assignments in order. `unassigned` keeps known buffers
 that should not belong to any tab.
 
-Closing the editor with `q` discards changes. Closing it normally parses the
-buffer and applies the layout when the content is valid.
+Closing the editor with `q` discards changes. Pressing `s` or closing it
+normally parses the buffer and applies the layout when the content is valid.
 
 Default editor UI mappings:
 
+- s applies the edited layout and closes the editor.
 - CTRL-J inserts an empty group after the group at the cursor. If the cursor
   is not inside any group, the empty group is appended at the end of `groups`.
 - CTRL-D deletes the group at the cursor when the cursor is inside `groups`.
 
-Change these mappings with `editor.keymaps.add_empty_group` and
-`editor.keymaps.delete_group`.
+Change these mappings with `editor.keymaps.save_and_close`,
+`editor.keymaps.add_empty_group`, and `editor.keymaps.delete_group`.
 
 ==============================================================================
 DETACHING BUFFERS                                    *tablocal_buffer-detach*

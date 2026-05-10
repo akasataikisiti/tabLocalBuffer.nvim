@@ -142,6 +142,27 @@ local function close_editor(bufnr, winid)
   ops.delete_buffer(bufnr, { force = true })
 end
 
+function M.save_and_close_editor(bufnr, winid)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return false
+  end
+
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local reverse = vim.deepcopy(vim.b[bufnr].tablocal_label_map or {})
+  local parsed, err = M.parse_editor_text(lines, reverse)
+  if not parsed then
+    vim.notify(("tablocal_buffer: invalid editor content: %s"):format(err), vim.log.levels.ERROR)
+    return false
+  end
+
+  vim.b[bufnr].tablocal_editor_cancelled = true
+  close_editor(bufnr, winid)
+  vim.schedule(function()
+    M.apply_layout(parsed)
+  end)
+  return true
+end
+
 function M.open_editor()
   local encoded = encode_state()
   local opts = config.get().editor
@@ -176,6 +197,12 @@ function M.open_editor()
   end, { buffer = bufnr, nowait = true, silent = true })
 
   local keymaps = config.get().editor.keymaps or {}
+  if keymaps.save_and_close and keymaps.save_and_close ~= "" and keymaps.save_and_close ~= "q" then
+    vim.keymap.set("n", keymaps.save_and_close, function()
+      M.save_and_close_editor(bufnr, winid)
+    end, { buffer = bufnr, nowait = true, silent = true, desc = "tablocal_buffer:save_and_close" })
+  end
+
   if keymaps.add_empty_group and keymaps.add_empty_group ~= "" then
     vim.keymap.set("n", keymaps.add_empty_group, function()
       M.insert_empty_group(bufnr, winid)

@@ -192,6 +192,7 @@ local function test_editor_keymaps_are_configurable()
   plugin.setting({
     editor = {
       keymaps = {
+        save_and_close = "<leader>s",
         add_empty_group = "<leader>j",
         delete_group = "<leader>d",
       },
@@ -201,8 +202,10 @@ local function test_editor_keymaps_are_configurable()
   local editor = require("tablocal_buffer.ui.editor")
   local bufnr, winid = editor.open_editor()
 
+  ok(vim.fn.maparg("<leader>s", "n", false, true).buffer == 1, "custom save mapping should be registered")
   ok(vim.fn.maparg("<leader>j", "n", false, true).buffer == 1, "custom add group mapping should be registered")
   ok(vim.fn.maparg("<leader>d", "n", false, true).buffer == 1, "custom delete group mapping should be registered")
+  ok(vim.tbl_isempty(vim.fn.maparg("s", "n", false, true)), "default save mapping should not be registered when overridden")
   ok(vim.tbl_isempty(vim.fn.maparg("<C-J>", "n", false, true)), "default add group mapping should not be registered when overridden")
   ok(vim.tbl_isempty(vim.fn.maparg("<C-D>", "n", false, true)), "default delete group mapping should not be registered when overridden")
 
@@ -244,6 +247,21 @@ local function test_editor_shows_unnamed_buffers_excluded_from_cycle()
   vim.api.nvim_win_close(winid, true)
 end
 
+local function test_editor_save_and_close_mapping_is_registered_by_default()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  local editor = require("tablocal_buffer.ui.editor")
+  local bufnr, winid = editor.open_editor()
+
+  ok(vim.fn.maparg("s", "n", false, true).buffer == 1, "default save mapping should be registered")
+
+  vim.b[bufnr].tablocal_editor_cancelled = true
+  vim.api.nvim_win_close(winid, true)
+end
+
 return {
   test_editor_parser,
   test_editor_render_text,
@@ -251,5 +269,6 @@ return {
   test_editor_insert_empty_group_at_cursor,
   test_editor_delete_group_at_cursor,
   test_editor_keymaps_are_configurable,
+  test_editor_save_and_close_mapping_is_registered_by_default,
   test_editor_shows_unnamed_buffers_excluded_from_cycle,
 }

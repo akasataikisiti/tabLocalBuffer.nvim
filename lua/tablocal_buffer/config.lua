@@ -15,6 +15,7 @@ local defaults = {
     height_ratio = 0.6,
     border = "rounded",
     keymaps = {
+      save_and_close = "s",
       add_empty_group = "<C-j>",
       delete_group = "<C-d>",
     },

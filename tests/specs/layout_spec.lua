@@ -39,6 +39,46 @@ local function test_editor_apply_layout_after_close()
   eq(#vim.api.nvim_list_tabpages(), 2, "closing editor with valid changes should apply layout after autocmd returns")
 end
 
+local function test_editor_save_and_close_mapping_applies_layout()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  new_named_buffer("a.txt")
+  new_named_buffer("b.txt")
+
+  local editor = require("tablocal_buffer.ui.editor")
+  local bufnr, winid = editor.open_editor()
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+    "-- Edit tab-local buffers and write/quit to apply. Press q to close without saving. Duplicate basenames keep the shown :<bufnr> suffix.",
+    "return {",
+    "  groups = {",
+    "    {",
+    '      "a.txt",',
+    "    },",
+    "    {",
+    '      "b.txt",',
+    "    },",
+    "  },",
+    "",
+    "  -- Unassigned buffers (not in any tab). Move labels above or leave here to keep unassigned.",
+    "  unassigned = {",
+    "    -- (none)",
+    "  },",
+    "}",
+  })
+
+  vim.api.nvim_set_current_win(winid)
+  vim.api.nvim_feedkeys("s", "x", false)
+  vim.wait(1000, function()
+    return #vim.api.nvim_list_tabpages() == 2
+  end)
+
+  eq(#vim.api.nvim_list_tabpages(), 2, "save mapping should apply layout and close the editor")
+  ok(not vim.api.nvim_win_is_valid(winid), "save mapping should close the editor window")
+end
+
 local function test_apply_layout_sorts_before_deleting_removed_buffers()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -256,6 +296,7 @@ end
 
 return {
   test_editor_apply_layout_after_close,
+  test_editor_save_and_close_mapping_applies_layout,
   test_apply_layout_sorts_before_deleting_removed_buffers,
   test_apply_layout_reorders_tabs_to_match_group_order,
   test_apply_layout_does_not_leave_new_tab_scratch_buffers_unassigned,
