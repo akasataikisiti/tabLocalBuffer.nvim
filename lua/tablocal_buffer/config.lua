@@ -18,6 +18,7 @@ local defaults = {
       save_and_close = "s",
       add_empty_group = "<C-j>",
       delete_group = "<C-d>",
+      dedup_groups = "<C-l>",
     },
   },
   cycle = {

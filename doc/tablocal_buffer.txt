@@ -63,6 +63,7 @@ Example configuration: >
       keymaps = {
         add_empty_group = "<C-j>",
         delete_group = "<C-d>",
+        dedup_groups = "<C-l>",
       },
     },
     cycle = {
@@ -148,6 +149,14 @@ OPTIONS                                              *tablocal_buffer-options*
 `editor.keymaps.delete_group` ~
   Normal-mode mapping in the editor UI for deleting the group at the cursor.
   The default is `"<C-d>"`. Set it to an empty string to disable the mapping.
+
+`editor.keymaps.dedup_groups` ~
+  Normal-mode mapping in the editor UI for removing duplicate buffer entries
+  across groups. Each buffer is kept only in the first group it appears in.
+  Groups that become empty after deduplication are removed. The default is
+  `"<C-l>"`. Set it to an empty string to disable the mapping.
+  Note: inside the editor, `<C-l>` overrides Neovim's built-in
+  `nohlsearch|diffupdate` action.
 
                                                        *tablocal_buffer-cycle*
 `cycle.include_terminal` ~
@@ -319,9 +328,13 @@ Default editor UI mappings:
 - CTRL-J inserts an empty group after the group at the cursor. If the cursor
   is not inside any group, the empty group is appended at the end of `groups`.
 - CTRL-D deletes the group at the cursor when the cursor is inside `groups`.
+- CTRL-L removes duplicate buffer entries across all groups, keeping each
+  buffer only in the first group it appears in. Groups that become empty after
+  deduplication are removed.
 
 Change these mappings with `editor.keymaps.save_and_close`,
-`editor.keymaps.add_empty_group`, and `editor.keymaps.delete_group`.
+`editor.keymaps.add_empty_group`, `editor.keymaps.delete_group`, and
+`editor.keymaps.dedup_groups`.
 
 ==============================================================================
 DETACHING BUFFERS                                    *tablocal_buffer-detach*

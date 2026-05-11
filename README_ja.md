@@ -54,6 +54,7 @@ require("tablocal_buffer").setting({
       save_and_close = "s",
       add_empty_group = "<C-j>",
       delete_group = "<C-d>",
+      dedup_groups = "<C-l>",
     },
   },
   cycle = {
@@ -140,6 +141,7 @@ return {
 - `editor.keymaps.save_and_close` — 編集 UI の内容を適用して閉じる。デフォルト: `"s"`。空文字で無効化。`q` は保存せず閉じる用途として予約。
 - `editor.keymaps.add_empty_group` — 編集 UI 上でカーソル位置の group の直後に空の group を挿入。デフォルト: `"<C-j>"`。空文字で無効化。
 - `editor.keymaps.delete_group` — 編集 UI 上でカーソル位置の group を削除。デフォルト: `"<C-d>"`。空文字で無効化。
+- `editor.keymaps.dedup_groups` — 複数の group に重複して存在するバッファを整理し、最初に現れた group だけに残す。重複削除後に空になった group は削除される。デフォルト: `"<C-l>"`。空文字で無効化。なお `<C-l>` は Neovim 組み込みの `nohlsearch|diffupdate` 動作を編集 UI 内で上書きする。
 
 ## Bufferline 連携
 

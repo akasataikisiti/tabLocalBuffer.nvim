@@ -135,6 +135,53 @@ function M.delete_group_at_cursor(bufnr, winid)
   return false
 end
 
+function M.dedup_groups(bufnr, winid)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local chunk = table.concat(lines, "\n")
+  local fn, parse_err = loadstring(chunk)
+  if not fn then
+    vim.notify(("tablocal_buffer: could not parse editor: %s"):format(parse_err), vim.log.levels.ERROR)
+    return false
+  end
+  local ok, payload = pcall(fn)
+  if not ok or type(payload) ~= "table" then
+    vim.notify("tablocal_buffer: invalid editor content", vim.log.levels.ERROR)
+    return false
+  end
+
+  local seen = {}
+  local changed = false
+  local new_groups = {}
+  for _, group in ipairs(payload.groups or {}) do
+    local new_group = {}
+    for _, label in ipairs(group) do
+      if not seen[label] then
+        seen[label] = true
+        table.insert(new_group, label)
+      else
+        changed = true
+      end
+    end
+    if #new_group > 0 then
+      table.insert(new_groups, new_group)
+    elseif #group > 0 then
+      changed = true
+    end
+  end
+
+  if not changed then
+    vim.notify("tablocal_buffer: no duplicate buffers found", vim.log.levels.INFO)
+    return false
+  end
+
+  local new_lines = M.render_editor_text({
+    groups = new_groups,
+    unassigned = payload.unassigned or {},
+  })
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, new_lines)
+  return true
+end
+
 M.apply_layout = layout.apply
 
 local function close_editor(bufnr, winid)
@@ -213,6 +260,12 @@ function M.open_editor()
     vim.keymap.set("n", keymaps.delete_group, function()
       M.delete_group_at_cursor(bufnr, winid)
     end, { buffer = bufnr, nowait = true, silent = true, desc = "tablocal_buffer:delete_group" })
+  end
+
+  if keymaps.dedup_groups and keymaps.dedup_groups ~= "" then
+    vim.keymap.set("n", keymaps.dedup_groups, function()
+      M.dedup_groups(bufnr, winid)
+    end, { buffer = bufnr, nowait = true, silent = true, desc = "tablocal_buffer:dedup_groups" })
   end
 
   vim.api.nvim_create_autocmd("BufWinLeave", {

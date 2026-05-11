@@ -54,6 +54,7 @@ require("tablocal_buffer").setting({
       save_and_close = "s",
       add_empty_group = "<C-j>",
       delete_group = "<C-d>",
+      dedup_groups = "<C-l>",
     },
   },
   cycle = {
@@ -140,6 +141,7 @@ No keymaps are registered by default. Specify them via the `keymaps` option.
 - `editor.keymaps.save_and_close` — Apply the editor UI contents and close it. Default: `"s"`. Set to `""` to disable. `q` is reserved for closing without saving.
 - `editor.keymaps.add_empty_group` — Insert an empty group after the cursor's group in the editor UI. Default: `"<C-j>"`. Set to `""` to disable.
 - `editor.keymaps.delete_group` — Delete the group at the cursor in the editor UI. Default: `"<C-d>"`. Set to `""` to disable.
+- `editor.keymaps.dedup_groups` — Remove duplicate buffer entries across groups, keeping each buffer only in the first group it appears in. Empty groups resulting from deduplication are removed. Default: `"<C-l>"`. Set to `""` to disable. Note: `<C-l>` overrides Neovim's built-in `nohlsearch|diffupdate` action inside the editor.
 
 ## Bufferline Integration
 

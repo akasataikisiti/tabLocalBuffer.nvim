@@ -185,6 +185,73 @@ local function test_editor_insert_empty_group_at_cursor()
   vim.api.nvim_win_close(winid, true)
 end
 
+local function test_editor_dedup_groups()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  local editor = require("tablocal_buffer.ui.editor")
+  local bufnr, winid = editor.open_editor()
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+    "-- Edit tab-local buffers and write/quit to apply. Press q to close without saving. Duplicate basenames keep the shown :<bufnr> suffix.",
+    "return {",
+    "  groups = {",
+    "    {",
+    '      "a.txt",',
+    '      "b.txt",',
+    '      "c.txt",',
+    "    },",
+    "    {",
+    '      "d.txt",',
+    '      "e.txt",',
+    '      "c.txt",',
+    '      "b.txt",',
+    "    },",
+    "    {",
+    '      "c.txt",',
+    "    },",
+    "  },",
+    "",
+    "  -- Unassigned buffers (not in any tab). Move labels above or leave here to keep unassigned.",
+    "  unassigned = {",
+    "  },",
+    "}",
+  })
+
+  local map = vim.fn.maparg("<C-L>", "n", false, true)
+  ok(map.buffer == 1, "editor should register buffer-local Ctrl-l mapping for dedup")
+  ok(editor.dedup_groups(bufnr, winid), "dedup_groups should detect and remove duplicates")
+
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  eq(lines, {
+    "-- Edit tab-local buffers and write/quit to apply. Press q to close without saving. Duplicate basenames keep the shown :<bufnr> suffix.",
+    "return {",
+    "  groups = {",
+    "    {",
+    '      "a.txt",',
+    '      "b.txt",',
+    '      "c.txt",',
+    "    },",
+    "    {",
+    '      "d.txt",',
+    '      "e.txt",',
+    "    },",
+    "  },",
+    "",
+    "  -- Unassigned buffers (not in any tab). Move labels above or leave here to keep unassigned.",
+    "  unassigned = {",
+    "    -- (none)",
+    "  },",
+    "}",
+  }, "dedup_groups should remove duplicate entries and empty groups")
+
+  ok(not editor.dedup_groups(bufnr, winid), "dedup_groups should return false when no duplicates remain")
+
+  vim.b[bufnr].tablocal_editor_cancelled = true
+  vim.api.nvim_win_close(winid, true)
+end
+
 local function test_editor_keymaps_are_configurable()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -195,6 +262,7 @@ local function test_editor_keymaps_are_configurable()
         save_and_close = "<leader>s",
         add_empty_group = "<leader>j",
         delete_group = "<leader>d",
+        dedup_groups = "<leader>l",
       },
     },
   })
@@ -205,9 +273,12 @@ local function test_editor_keymaps_are_configurable()
   ok(vim.fn.maparg("<leader>s", "n", false, true).buffer == 1, "custom save mapping should be registered")
   ok(vim.fn.maparg("<leader>j", "n", false, true).buffer == 1, "custom add group mapping should be registered")
   ok(vim.fn.maparg("<leader>d", "n", false, true).buffer == 1, "custom delete group mapping should be registered")
+  ok(vim.fn.maparg("<leader>l", "n", false, true).buffer == 1, "custom dedup mapping should be registered")
   ok(vim.tbl_isempty(vim.fn.maparg("s", "n", false, true)), "default save mapping should not be registered when overridden")
   ok(vim.tbl_isempty(vim.fn.maparg("<C-J>", "n", false, true)), "default add group mapping should not be registered when overridden")
   ok(vim.tbl_isempty(vim.fn.maparg("<C-D>", "n", false, true)), "default delete group mapping should not be registered when overridden")
+  -- <C-L> has a Neovim built-in global mapping, so check it is not buffer-local rather than absent
+  ok(vim.fn.maparg("<C-L>", "n", false, true).buffer ~= 1, "default dedup mapping should not be registered as buffer-local when overridden")
 
   vim.b[bufnr].tablocal_editor_cancelled = true
   vim.api.nvim_win_close(winid, true)
@@ -268,6 +339,7 @@ return {
   test_editor_insert_empty_group,
   test_editor_insert_empty_group_at_cursor,
   test_editor_delete_group_at_cursor,
+  test_editor_dedup_groups,
   test_editor_keymaps_are_configurable,
   test_editor_save_and_close_mapping_is_registered_by_default,
   test_editor_shows_unnamed_buffers_excluded_from_cycle,
