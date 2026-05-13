@@ -11,7 +11,7 @@
 
 - `require("tablocal_buffer").setting(opts)` を正式な設定入口として提供
 - 既定キーマップは登録せず、`keymaps` で指定されたものだけ登録
-- `BufWinEnter` / `BufWipeout` ベースで各タブのバッファリストを維持
+- 新しく開いたバッファは現在のタブに自動所属する
 - `:TabLocalMoveToNewTab` で現在バッファを新規タブへ移送
 - `:TabLocalDetachBuffer` / `:TabLocalWriteDetachBuffer` / `:TabLocalDeleteBuffer` で現在バッファだけを安全に外せる
 - フローティング編集 UI でタブごとのバッファ割当を編集
@@ -96,7 +96,9 @@ require("tablocal_buffer").setting({
 
 ### 編集 UI
 
-`:TabLocalEditTabBuffers` は Lua テーブル形式のフローティングバッファを開きます。`q` で閉じると破棄され、`s` または通常に閉じると `groups` と `unassigned` の内容が適用されます。
+`:TabLocalEditTabBuffers` は Lua テーブル形式のフローティングバッファを開きます。`q` で閉じると変更は破棄されます。`s`（または `:close` 等 `q` 以外の方法）で閉じると内容が適用されます。
+
+`groups` の各要素が1つのタブのバッファリストに対応します。`unassigned` はどのタブにも属さないバッファです。`bnext` / `bprevious` の巡回対象には含まれません。`groups` 内に移動するとそのタブに所属させられます。
 
 ```lua
 return {
@@ -151,6 +153,26 @@ return {
 - `bufferline.auto_sort_on_apply` — 編集 UI の適用後に自動ソートするかどうか。デフォルト: `true`。
 
 手動でソートするには `:TabLocalBufferlineSort` を使います。
+
+### タブ番号の表示
+
+`name_formatter` オプションに `tablocal_buffer.get_buf_tabnr()` を組み合わせると、bufferline 上の各バッファにタブ番号を表示できます（例: `#1 init.lua`）。
+
+```lua
+bufferline.setup({
+  options = {
+    name_formatter = function(buf)
+      local ok, tablocal = pcall(require, "tablocal_buffer")
+      if not ok then return buf.name end
+      local tnr = tablocal.get_buf_tabnr(buf.bufnr)
+      if tnr then
+        return string.format("#%d %s", tnr, buf.name)
+      end
+      return buf.name
+    end,
+  },
+})
+```
 
 ## License
 

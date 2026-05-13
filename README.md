@@ -11,7 +11,7 @@ tabLocalBuffer.nvim keeps a per-tab set of buffers so that `bnext` / `bprevious`
 
 - Provides `require("tablocal_buffer").setting(opts)` as the official configuration entry point
 - Does not register default keymaps; only keymaps specified in `keymaps` are registered
-- Maintains each tab's buffer list with `BufWinEnter` / `BufWipeout`
+- Newly opened buffers are automatically assigned to the current tab
 - Moves the current buffer to a new tab with `:TabLocalMoveToNewTab`
 - Safely detaches only the current buffer with `:TabLocalDetachBuffer` / `:TabLocalWriteDetachBuffer` / `:TabLocalDeleteBuffer`
 - Provides a floating editor UI for editing per-tab buffer assignments
@@ -96,7 +96,9 @@ Normal `[No Name]` buffers are included in the cycle by default. To exclude them
 
 ### Editor UI
 
-`:TabLocalEditTabBuffers` opens a floating buffer in a Lua table format. Closing with `q` discards changes; pressing `s` or closing normally applies `groups` and `unassigned`.
+`:TabLocalEditTabBuffers` opens a floating buffer in a Lua table format. Closing with `q` discards changes. Closing with `s` (or any method other than `q`, such as `:close`) applies the contents.
+
+Each element of `groups` corresponds to one tab's buffer list. `unassigned` holds buffers that do not belong to any tab and are excluded from `bnext` / `bprevious` cycling. Moving a label into `groups` assigns it to that tab.
 
 ```lua
 return {
@@ -151,6 +153,26 @@ When `bufferline.nvim` is installed, tabLocalBuffer.nvim can use its global buff
 - `bufferline.auto_sort_on_apply` — Automatically sort after applying the editor UI. Default: `true`.
 
 Use `:TabLocalBufferlineSort` to trigger sorting manually.
+
+### Showing Tab Numbers
+
+Combine `name_formatter` with `tablocal_buffer.get_buf_tabnr()` to display the tab number for each buffer in bufferline (e.g. `#1 init.lua`).
+
+```lua
+bufferline.setup({
+  options = {
+    name_formatter = function(buf)
+      local ok, tablocal = pcall(require, "tablocal_buffer")
+      if not ok then return buf.name end
+      local tnr = tablocal.get_buf_tabnr(buf.bufnr)
+      if tnr then
+        return string.format("#%d %s", tnr, buf.name)
+      end
+      return buf.name
+    end,
+  },
+})
+```
 
 ## License
 
