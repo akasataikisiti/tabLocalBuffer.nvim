@@ -119,7 +119,9 @@ local function create_autocmds()
     callback = function(args)
       local tabpage = vim.api.nvim_get_current_tabpage()
       model.add_buffer_to_tab(tabpage, args.buf)
-      model.sync_tab_windows(tabpage)
+      if model.is_cycle_candidate(args.buf) then
+        model.sync_tab_windows(tabpage)
+      end
     end,
   })
   vim.api.nvim_create_autocmd("BufWipeout", {
