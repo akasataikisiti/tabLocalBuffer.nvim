@@ -52,6 +52,23 @@ local function test_excluded_buffer_enter_does_not_sync_window_back()
   eq(plugin.get_buf_tabnr(excluded), nil, "excluded buffer should not become a cycle buffer")
 end
 
+local function test_sync_does_not_replace_current_excluded_window()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  local managed = new_named_buffer("managed.lua")
+  local excluded = vim.api.nvim_create_buf(true, false)
+  vim.api.nvim_buf_set_name(excluded, "fugitive:///tmp/repo/.git//0/staged.lua")
+  vim.api.nvim_set_current_buf(excluded)
+
+  require("tablocal_buffer.model").sync_tab_windows(vim.api.nvim_get_current_tabpage())
+
+  eq(vim.api.nvim_get_current_buf(), excluded, "sync should not replace an excluded current window")
+  eq(plugin.get_buf_tabnr(managed), 1, "managed buffer should stay assigned to the tab")
+end
+
 local function test_move_to_new_tab()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -148,6 +165,7 @@ return {
   test_navigation_and_registration,
   test_navigation_includes_unnamed_buffers_by_default,
   test_excluded_buffer_enter_does_not_sync_window_back,
+  test_sync_does_not_replace_current_excluded_window,
   test_move_to_new_tab,
   test_move_to_new_tab_replaces_last_source_window,
   test_detach_current_buffer_keeps_tab_open_and_unassigns_buffer,

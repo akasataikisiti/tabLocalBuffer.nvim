@@ -279,11 +279,6 @@ function M.sync_tab_windows(tabpage)
   if has_managed_window then
     return
   end
-
-  local current = vim.api.nvim_tabpage_get_win(tabpage)
-  if current and vim.api.nvim_win_is_valid(current) then
-    ops.set_win_buf(current, first)
-  end
 end
 
 function M.bootstrap()
