@@ -118,7 +118,7 @@ return {
 
 - `:TabLocalDetachBuffer` — 現在バッファを現在タブの一覧から外し、未所属状態にする。
 - `:TabLocalWriteDetachBuffer` — `:write` 後に現在バッファを現在タブの一覧から外す。
-- `:TabLocalDeleteBuffer` — 現在バッファを現在タブの一覧から外し、その後バッファ自体を削除する。
+- `:TabLocalDeleteBuffer` — 現在バッファを現在タブの一覧から外し、その後バッファ自体を削除する。`!` を付けると変更済みバッファも強制削除する。
 
 ## コマンド
 

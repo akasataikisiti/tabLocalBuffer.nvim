@@ -232,9 +232,9 @@ COMMANDS                                            *tablocal_buffer-commands*
   assignment list.
 
                                                         *:TabLocalDeleteBuffer*
-:TabLocalDeleteBuffer
+:TabLocalDeleteBuffer[!]
   Remove the current buffer from the current tab's assignment list, then delete
-  the buffer itself.
+  the buffer itself.  `:TabLocalDeleteBuffer!` also deletes a modified buffer.
 
                                                         *:TabLocalDebugState*
 :TabLocalDebugState

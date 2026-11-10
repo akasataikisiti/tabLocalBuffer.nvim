@@ -118,7 +118,7 @@ The behavior of `:q` / `:wq` / `:bd` is unchanged. Use these commands to detach 
 
 - `:TabLocalDetachBuffer` — Remove from the current tab's list, leave unassigned.
 - `:TabLocalWriteDetachBuffer` — Run `:write`, then remove from the current tab's list.
-- `:TabLocalDeleteBuffer` — Remove from the current tab's list, then delete the buffer.
+- `:TabLocalDeleteBuffer` — Remove from the current tab's list, then delete the buffer. Add `!` to force-delete a modified buffer.
 
 ## Commands
 

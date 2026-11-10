@@ -51,8 +51,8 @@ local function create_commands()
     TabLocalWriteDetachBuffer = function()
       M.write_and_detach_current_buffer_from_tab()
     end,
-    TabLocalDeleteBuffer = function()
-      M.delete_current_buffer_from_tab()
+    TabLocalDeleteBuffer = function(command_opts)
+      M.delete_current_buffer_from_tab({ force = command_opts.bang })
     end,
     TabLocalDebugState = function()
       local state = {}
@@ -64,7 +64,9 @@ local function create_commands()
   }
 
   for name, callback in pairs(specs) do
-    vim.api.nvim_create_user_command(name, callback, {})
+    vim.api.nvim_create_user_command(name, callback, {
+      bang = name == "TabLocalDeleteBuffer",
+    })
   end
 end
 
@@ -214,11 +216,11 @@ function M.write_and_detach_current_buffer_from_tab()
   return M.detach_current_buffer_from_tab()
 end
 
-function M.delete_current_buffer_from_tab()
+function M.delete_current_buffer_from_tab(opts)
   local bufnr = vim.api.nvim_get_current_buf()
   local detached = model.detach_buffer_from_tab(vim.api.nvim_get_current_tabpage(), bufnr)
   if detached and vim.api.nvim_buf_is_valid(bufnr) then
-    ops.delete_buffer(bufnr, { force = false })
+    ops.delete_buffer(bufnr, { force = opts and opts.force == true })
   end
   return detached
 end

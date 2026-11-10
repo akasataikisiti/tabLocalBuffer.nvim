@@ -140,6 +140,24 @@ local function test_delete_current_buffer_from_tab_removes_buffer_without_closin
   eq(vim.api.nvim_get_current_buf(), second, "window should remain on a valid fallback buffer")
 end
 
+local function test_delete_command_bang_forces_modified_buffer_deletion()
+  reset()
+  package.loaded["tablocal_buffer"] = nil
+  local plugin = require("tablocal_buffer")
+  plugin.setting({})
+
+  local first = new_named_buffer("modified.lua")
+  local second = new_named_buffer("after-modified.lua")
+  vim.api.nvim_set_current_buf(first)
+  vim.api.nvim_buf_set_lines(first, 0, -1, false, { "modified" })
+  ok(vim.bo[first].modified, "test buffer should be modified")
+
+  vim.cmd("TabLocalDeleteBuffer!")
+
+  ok(not vim.api.nvim_buf_is_valid(first), "bang should force-delete modified buffer")
+  eq(vim.api.nvim_get_current_buf(), second, "window should remain on a valid fallback buffer")
+end
+
 local function test_bufwipeout_syncs_after_autocmd()
   reset()
   package.loaded["tablocal_buffer"] = nil
@@ -170,5 +188,6 @@ return {
   test_move_to_new_tab_replaces_last_source_window,
   test_detach_current_buffer_keeps_tab_open_and_unassigns_buffer,
   test_delete_current_buffer_from_tab_removes_buffer_without_closing_tab,
+  test_delete_command_bang_forces_modified_buffer_deletion,
   test_bufwipeout_syncs_after_autocmd,
 }
