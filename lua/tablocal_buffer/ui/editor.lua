@@ -53,6 +53,32 @@ local function find_groups_block(lines)
   end
 end
 
+local function find_group_insert_position(lines, close_line, group_indent, winid)
+  local insert_at = close_line - 1  -- 0-based: inserts after 1-based line (close_line - 1)
+  local cursor_line_after = close_line + 1
+
+  if not winid or not vim.api.nvim_win_is_valid(winid) then
+    return insert_at, cursor_line_after
+  end
+
+  local cursor_line = vim.api.nvim_win_get_cursor(winid)[1]
+  local group_start = nil
+  for index = 1, close_line - 1 do
+    local line = lines[index]
+    if line:match("^" .. group_indent .. "{%s*$") then
+      group_start = index
+    elseif group_start and line:match("^" .. group_indent .. "},%s*$") then
+      if cursor_line >= group_start and cursor_line <= index then
+        -- Insert after this group's closing `},` (1-based index)
+        return index, index + 2
+      end
+      group_start = nil
+    end
+  end
+
+  return insert_at, cursor_line_after
+end
+
 function M.insert_empty_group(bufnr, winid)
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local close_line, groups_indent = find_groups_block(lines)
@@ -68,29 +94,7 @@ function M.insert_empty_group(bufnr, winid)
     entry_indent,
     group_indent .. "},",
   }
-
-  -- Default: insert before the closing `},` of the groups block
-  local insert_at = close_line - 1  -- 0-based: inserts after 1-based line (close_line - 1)
-  local cursor_line_after = close_line + 1
-
-  if winid and vim.api.nvim_win_is_valid(winid) then
-    local cursor_line = vim.api.nvim_win_get_cursor(winid)[1]
-    local group_start = nil
-    for index = 1, close_line - 1 do
-      local line = lines[index]
-      if line:match("^" .. group_indent .. "{%s*$") then
-        group_start = index
-      elseif group_start and line:match("^" .. group_indent .. "},%s*$") then
-        if cursor_line >= group_start and cursor_line <= index then
-          -- Insert after this group's closing `},` (1-based index)
-          insert_at = index
-          cursor_line_after = index + 2
-          break
-        end
-        group_start = nil
-      end
-    end
-  end
+  local insert_at, cursor_line_after = find_group_insert_position(lines, close_line, group_indent, winid)
 
   vim.api.nvim_buf_set_lines(bufnr, insert_at, insert_at, false, inserted)
 
@@ -210,19 +214,18 @@ function M.save_and_close_editor(bufnr, winid)
   return true
 end
 
-function M.open_editor()
-  local encoded = encode_state()
-  local opts = config.get().editor
-  local width = math.max(40, math.floor(vim.o.columns * opts.width_ratio))
-  local height = math.max(10, math.floor(vim.o.lines * opts.height_ratio))
-
-  local bufnr = vim.api.nvim_create_buf(false, true)
+local function configure_editor_buffer(bufnr)
   vim.bo[bufnr].buftype = "nofile"
   vim.bo[bufnr].bufhidden = "wipe"
   vim.bo[bufnr].swapfile = false
   vim.bo[bufnr].filetype = "lua"
+end
 
-  local winid = vim.api.nvim_open_win(bufnr, true, {
+local function create_editor_window(bufnr, opts)
+  local width = math.max(40, math.floor(vim.o.columns * opts.width_ratio))
+  local height = math.max(10, math.floor(vim.o.lines * opts.height_ratio))
+
+  return vim.api.nvim_open_win(bufnr, true, {
     relative = "editor",
     row = math.max(0, math.floor((vim.o.lines - height) / 2) - 1),
     col = math.floor((vim.o.columns - width) / 2),
@@ -231,13 +234,9 @@ function M.open_editor()
     border = opts.border,
     style = "minimal",
   })
+end
 
-  local lines = M.render_editor_text(encoded.payload)
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-
-  vim.b[bufnr].tablocal_label_map = encoded.reverse
-  vim.b[bufnr].tablocal_editor_cancelled = false
-
+local function set_editor_keymaps(bufnr, winid)
   vim.keymap.set("n", "q", function()
     vim.b[bufnr].tablocal_editor_cancelled = true
     close_editor(bufnr, winid)
@@ -267,7 +266,9 @@ function M.open_editor()
       M.dedup_groups(bufnr, winid)
     end, { buffer = bufnr, nowait = true, silent = true, desc = "tablocal_buffer:dedup_groups" })
   end
+end
 
+local function set_editor_autocmd(bufnr)
   vim.api.nvim_create_autocmd("BufWinLeave", {
     buffer = bufnr,
     once = true,
@@ -287,6 +288,21 @@ function M.open_editor()
       end)
     end,
   })
+end
+
+function M.open_editor()
+  local encoded = encode_state()
+  local opts = config.get().editor
+  local bufnr = vim.api.nvim_create_buf(false, true)
+  configure_editor_buffer(bufnr)
+
+  local winid = create_editor_window(bufnr, opts)
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, M.render_editor_text(encoded.payload))
+  vim.b[bufnr].tablocal_label_map = encoded.reverse
+  vim.b[bufnr].tablocal_editor_cancelled = false
+
+  set_editor_keymaps(bufnr, winid)
+  set_editor_autocmd(bufnr)
 
   return bufnr, winid
 end

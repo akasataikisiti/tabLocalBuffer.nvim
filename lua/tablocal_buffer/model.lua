@@ -199,6 +199,53 @@ local function find_window_fallback_buffer(tabpage, excluded_bufnr)
   end
 end
 
+local function find_target_windows(tab_windows, bufnr)
+  local target_windows = {}
+  for _, winid in ipairs(tab_windows) do
+    if vim.api.nvim_win_is_valid(winid) and vim.api.nvim_win_get_buf(winid) == bufnr then
+      table.insert(target_windows, winid)
+    end
+  end
+  return target_windows
+end
+
+local function replace_target_windows(target_windows, fallback)
+  for _, winid in ipairs(target_windows) do
+    ops.set_win_buf(winid, fallback)
+  end
+end
+
+local function replace_all_windows(target_windows)
+  local placeholder = vim.api.nvim_create_buf(false, false)
+  ops.set_win_buf(target_windows[1], placeholder)
+  for index = 2, #target_windows do
+    ops.close_win(target_windows[index], false)
+  end
+end
+
+local function close_target_windows(target_windows)
+  for _, winid in ipairs(target_windows) do
+    ops.close_win(winid, false)
+  end
+end
+
+local function update_detached_windows(tabpage, bufnr, tab_windows, target_windows)
+  local fallback = M.find_first_valid_buffer(tabpage) or find_window_fallback_buffer(tabpage, bufnr)
+  if fallback then
+    replace_target_windows(target_windows, fallback)
+    return
+  end
+
+  if #target_windows == #tab_windows and #target_windows > 0 then
+    replace_all_windows(target_windows)
+    return
+  end
+
+  if #target_windows < #tab_windows then
+    close_target_windows(target_windows)
+  end
+end
+
 function M.detach_buffer_from_tab(tabpage, bufnr)
   if not vim.api.nvim_tabpage_is_valid(tabpage) or not vim.api.nvim_buf_is_valid(bufnr) then
     return false
@@ -209,33 +256,9 @@ function M.detach_buffer_from_tab(tabpage, bufnr)
   end
 
   local tab_windows = vim.api.nvim_tabpage_list_wins(tabpage)
-  local target_windows = {}
-  for _, winid in ipairs(tab_windows) do
-    if vim.api.nvim_win_is_valid(winid) and vim.api.nvim_win_get_buf(winid) == bufnr then
-      table.insert(target_windows, winid)
-    end
-  end
-
+  local target_windows = find_target_windows(tab_windows, bufnr)
   M.remove_buffer_from_tab(tabpage, bufnr)
-
-  local fallback = M.find_first_valid_buffer(tabpage) or find_window_fallback_buffer(tabpage, bufnr)
-  if fallback then
-    for _, winid in ipairs(target_windows) do
-      ops.set_win_buf(winid, fallback)
-    end
-  elseif #target_windows == #tab_windows and #target_windows > 0 then
-    local placeholder = vim.api.nvim_create_buf(false, false)
-    local keep_win = target_windows[1]
-    ops.set_win_buf(keep_win, placeholder)
-    for index = 2, #target_windows do
-      local winid = target_windows[index]
-      ops.close_win(winid, false)
-    end
-  elseif #target_windows < #tab_windows then
-    for _, winid in ipairs(target_windows) do
-      ops.close_win(winid, false)
-    end
-  end
+  update_detached_windows(tabpage, bufnr, tab_windows, target_windows)
 
   M.sync_tab_windows(tabpage)
   return true

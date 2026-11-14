@@ -59,39 +59,51 @@ local function maybe_delete_created_scratch_buffer(bufnr)
   ops.delete_unmodified_unnamed_buffer(bufnr)
 end
 
-local function tabs_by_best_overlap(groups)
-  local tabs = vim.api.nvim_list_tabpages()
+local function collect_tab_buffer_state(tabs)
   local current_state = {}
   for _, tabpage in ipairs(tabs) do
     current_state[tabpage] = model.get_tab_buffers_raw(tabpage)
   end
+  return current_state
+end
 
+local function find_best_available_tab(group, tabs, current_state, assigned_tabs)
+  local best_tab = nil
+  local best_score = -1
+  for _, tabpage in ipairs(tabs) do
+    if not assigned_tabs[tabpage] then
+      local score = overlap_size(group, current_state[tabpage])
+      if score > best_score then
+        best_tab = tabpage
+        best_score = score
+      end
+    end
+  end
+  return best_tab
+end
+
+local function append_unassigned_tabs(ordered_tabs, tabs, assigned_tabs)
+  for _, tabpage in ipairs(tabs) do
+    if not assigned_tabs[tabpage] then
+      table.insert(ordered_tabs, tabpage)
+    end
+  end
+end
+
+local function tabs_by_best_overlap(groups)
+  local tabs = vim.api.nvim_list_tabpages()
+  local current_state = collect_tab_buffer_state(tabs)
   local assigned_tabs = {}
   local ordered_tabs = {}
   for _, group in ipairs(groups) do
-    local best_tab = nil
-    local best_score = -1
-    for _, tabpage in ipairs(tabs) do
-      if not assigned_tabs[tabpage] then
-        local score = overlap_size(group, current_state[tabpage])
-        if score > best_score then
-          best_tab = tabpage
-          best_score = score
-        end
-      end
-    end
+    local best_tab = find_best_available_tab(group, tabs, current_state, assigned_tabs)
     if best_tab then
       assigned_tabs[best_tab] = true
       table.insert(ordered_tabs, best_tab)
     end
   end
 
-  for _, tabpage in ipairs(tabs) do
-    if not assigned_tabs[tabpage] then
-      table.insert(ordered_tabs, tabpage)
-    end
-  end
-
+  append_unassigned_tabs(ordered_tabs, tabs, assigned_tabs)
   return ordered_tabs
 end
 
