@@ -210,19 +210,18 @@ function M.save_and_close_editor(bufnr, winid)
   return true
 end
 
-function M.open_editor()
-  local encoded = encode_state()
-  local opts = config.get().editor
-  local width = math.max(40, math.floor(vim.o.columns * opts.width_ratio))
-  local height = math.max(10, math.floor(vim.o.lines * opts.height_ratio))
-
-  local bufnr = vim.api.nvim_create_buf(false, true)
+local function configure_editor_buffer(bufnr)
   vim.bo[bufnr].buftype = "nofile"
   vim.bo[bufnr].bufhidden = "wipe"
   vim.bo[bufnr].swapfile = false
   vim.bo[bufnr].filetype = "lua"
+end
 
-  local winid = vim.api.nvim_open_win(bufnr, true, {
+local function create_editor_window(bufnr, opts)
+  local width = math.max(40, math.floor(vim.o.columns * opts.width_ratio))
+  local height = math.max(10, math.floor(vim.o.lines * opts.height_ratio))
+
+  return vim.api.nvim_open_win(bufnr, true, {
     relative = "editor",
     row = math.max(0, math.floor((vim.o.lines - height) / 2) - 1),
     col = math.floor((vim.o.columns - width) / 2),
@@ -231,13 +230,9 @@ function M.open_editor()
     border = opts.border,
     style = "minimal",
   })
+end
 
-  local lines = M.render_editor_text(encoded.payload)
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, lines)
-
-  vim.b[bufnr].tablocal_label_map = encoded.reverse
-  vim.b[bufnr].tablocal_editor_cancelled = false
-
+local function set_editor_keymaps(bufnr, winid)
   vim.keymap.set("n", "q", function()
     vim.b[bufnr].tablocal_editor_cancelled = true
     close_editor(bufnr, winid)
@@ -267,7 +262,9 @@ function M.open_editor()
       M.dedup_groups(bufnr, winid)
     end, { buffer = bufnr, nowait = true, silent = true, desc = "tablocal_buffer:dedup_groups" })
   end
+end
 
+local function set_editor_autocmd(bufnr)
   vim.api.nvim_create_autocmd("BufWinLeave", {
     buffer = bufnr,
     once = true,
@@ -287,6 +284,21 @@ function M.open_editor()
       end)
     end,
   })
+end
+
+function M.open_editor()
+  local encoded = encode_state()
+  local opts = config.get().editor
+  local bufnr = vim.api.nvim_create_buf(false, true)
+  configure_editor_buffer(bufnr)
+
+  local winid = create_editor_window(bufnr, opts)
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, M.render_editor_text(encoded.payload))
+  vim.b[bufnr].tablocal_label_map = encoded.reverse
+  vim.b[bufnr].tablocal_editor_cancelled = false
+
+  set_editor_keymaps(bufnr, winid)
+  set_editor_autocmd(bufnr)
 
   return bufnr, winid
 end
