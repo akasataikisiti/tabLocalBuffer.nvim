@@ -1,6 +1,58 @@
 local h = dofile("tests/helpers.lua")
 local eq, ok, reset, new_named_buffer = h.eq, h.ok, h.reset, h.new_named_buffer
 
+local function duplicate_group_editor_lines()
+  return {
+    "-- Edit tab-local buffers and write/quit to apply. Press q to close without saving. Duplicate basenames keep the shown :<bufnr> suffix.",
+    "return {",
+    "  groups = {",
+    "    {",
+    '      "a.txt",',
+    '      "b.txt",',
+    '      "c.txt",',
+    "    },",
+    "    {",
+    '      "d.txt",',
+    '      "e.txt",',
+    '      "c.txt",',
+    '      "b.txt",',
+    "    },",
+    "    {",
+    '      "c.txt",',
+    "    },",
+    "  },",
+    "",
+    "  -- Unassigned buffers (not in any tab). Move labels above or leave here to keep unassigned.",
+    "  unassigned = {",
+    "  },",
+    "}",
+  }
+end
+
+local function deduplicated_group_editor_lines()
+  return {
+    "-- Edit tab-local buffers and write/quit to apply. Press q to close without saving. Duplicate basenames keep the shown :<bufnr> suffix.",
+    "return {",
+    "  groups = {",
+    "    {",
+    '      "a.txt",',
+    '      "b.txt",',
+    '      "c.txt",',
+    "    },",
+    "    {",
+    '      "d.txt",',
+    '      "e.txt",',
+    "    },",
+    "  },",
+    "",
+    "  -- Unassigned buffers (not in any tab). Move labels above or leave here to keep unassigned.",
+    "  unassigned = {",
+    "    -- (none)",
+    "  },",
+    "}",
+  }
+end
+
 local function test_editor_parser()
   reset()
   local editor = require("tablocal_buffer.ui.editor")
@@ -193,58 +245,14 @@ local function test_editor_dedup_groups()
 
   local editor = require("tablocal_buffer.ui.editor")
   local bufnr, winid = editor.open_editor()
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
-    "-- Edit tab-local buffers and write/quit to apply. Press q to close without saving. Duplicate basenames keep the shown :<bufnr> suffix.",
-    "return {",
-    "  groups = {",
-    "    {",
-    '      "a.txt",',
-    '      "b.txt",',
-    '      "c.txt",',
-    "    },",
-    "    {",
-    '      "d.txt",',
-    '      "e.txt",',
-    '      "c.txt",',
-    '      "b.txt",',
-    "    },",
-    "    {",
-    '      "c.txt",',
-    "    },",
-    "  },",
-    "",
-    "  -- Unassigned buffers (not in any tab). Move labels above or leave here to keep unassigned.",
-    "  unassigned = {",
-    "  },",
-    "}",
-  })
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, duplicate_group_editor_lines())
 
   local map = vim.fn.maparg("<C-L>", "n", false, true)
   ok(map.buffer == 1, "editor should register buffer-local Ctrl-l mapping for dedup")
   ok(editor.dedup_groups(bufnr, winid), "dedup_groups should detect and remove duplicates")
 
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  eq(lines, {
-    "-- Edit tab-local buffers and write/quit to apply. Press q to close without saving. Duplicate basenames keep the shown :<bufnr> suffix.",
-    "return {",
-    "  groups = {",
-    "    {",
-    '      "a.txt",',
-    '      "b.txt",',
-    '      "c.txt",',
-    "    },",
-    "    {",
-    '      "d.txt",',
-    '      "e.txt",',
-    "    },",
-    "  },",
-    "",
-    "  -- Unassigned buffers (not in any tab). Move labels above or leave here to keep unassigned.",
-    "  unassigned = {",
-    "    -- (none)",
-    "  },",
-    "}",
-  }, "dedup_groups should remove duplicate entries and empty groups")
+  eq(lines, deduplicated_group_editor_lines(), "dedup_groups should remove duplicate entries and empty groups")
 
   ok(not editor.dedup_groups(bufnr, winid), "dedup_groups should return false when no duplicates remain")
 
