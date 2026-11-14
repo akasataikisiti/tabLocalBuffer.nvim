@@ -53,6 +53,32 @@ local function find_groups_block(lines)
   end
 end
 
+local function find_group_insert_position(lines, close_line, group_indent, winid)
+  local insert_at = close_line - 1  -- 0-based: inserts after 1-based line (close_line - 1)
+  local cursor_line_after = close_line + 1
+
+  if not winid or not vim.api.nvim_win_is_valid(winid) then
+    return insert_at, cursor_line_after
+  end
+
+  local cursor_line = vim.api.nvim_win_get_cursor(winid)[1]
+  local group_start = nil
+  for index = 1, close_line - 1 do
+    local line = lines[index]
+    if line:match("^" .. group_indent .. "{%s*$") then
+      group_start = index
+    elseif group_start and line:match("^" .. group_indent .. "},%s*$") then
+      if cursor_line >= group_start and cursor_line <= index then
+        -- Insert after this group's closing `},` (1-based index)
+        return index, index + 2
+      end
+      group_start = nil
+    end
+  end
+
+  return insert_at, cursor_line_after
+end
+
 function M.insert_empty_group(bufnr, winid)
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
   local close_line, groups_indent = find_groups_block(lines)
@@ -68,29 +94,7 @@ function M.insert_empty_group(bufnr, winid)
     entry_indent,
     group_indent .. "},",
   }
-
-  -- Default: insert before the closing `},` of the groups block
-  local insert_at = close_line - 1  -- 0-based: inserts after 1-based line (close_line - 1)
-  local cursor_line_after = close_line + 1
-
-  if winid and vim.api.nvim_win_is_valid(winid) then
-    local cursor_line = vim.api.nvim_win_get_cursor(winid)[1]
-    local group_start = nil
-    for index = 1, close_line - 1 do
-      local line = lines[index]
-      if line:match("^" .. group_indent .. "{%s*$") then
-        group_start = index
-      elseif group_start and line:match("^" .. group_indent .. "},%s*$") then
-        if cursor_line >= group_start and cursor_line <= index then
-          -- Insert after this group's closing `},` (1-based index)
-          insert_at = index
-          cursor_line_after = index + 2
-          break
-        end
-        group_start = nil
-      end
-    end
-  end
+  local insert_at, cursor_line_after = find_group_insert_position(lines, close_line, group_indent, winid)
 
   vim.api.nvim_buf_set_lines(bufnr, insert_at, insert_at, false, inserted)
 
